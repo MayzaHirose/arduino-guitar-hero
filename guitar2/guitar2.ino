@@ -6,9 +6,9 @@
 
 const int led = 15;
 const int pinBuz = 14; //Buzzer Pin
-const int pinVerm = 5; // Push-button vermelhor
-const int pinAzul = 6; // Push-button azul
-const int pinBranco = 7; // Push-button branco
+const int pinVerm = 5; // Push-button vermelho coluna 6
+const int pinAzul = 6; // Push-button azul coluna 3
+const int pinBranco = 7; // Push-button branco columa 1
 int botaoVerm, botaoAzul, botaoBranco; 
   
 LedControl ledCtrl = LedControl(din,clk,cs, 1);
@@ -197,6 +197,15 @@ const byte MUSICA_1[][8] = {
   B00000000,
   B00000000,
   B00000000,
+  B01000000
+},{
+  B11111111,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
   B00000000
 }};
 const int MUSICA_1_LEN = sizeof(MUSICA_1)/8;
@@ -232,20 +241,20 @@ void displayContador(const byte* contador) {
 void displayJogo(const byte* jogo) {
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
-      ledCtrl.setLed(0, i, j, bitRead(contador[i], 7 - j));
+      ledCtrl.setLed(0, i, j, bitRead(jogo[i], 7 - j));
     }
   }
 }
 
 void loop() {
   for(int i=0;i<MUSICA_1_LEN;i++){
-    displayJogo(GUITAR_HERO[i]);  
+    displayJogo(MUSICA_1[i]);  
     delay(300);
     botaoVerm = digitalRead(pinVerm); //Put the reading value of the switch on botao
     botaoAzul = digitalRead(pinAzul); //Put the reading value of the switch on botao
     botaoBranco = digitalRead(pinBranco); //Put the reading value of the switch on botao
     if(botaoVerm == 1){
-      if(lin1 == 8){
+      if(bitRead(MUSICA_1[i][7], 1)){
       digitalWrite(pinBuz,1);
       digitalWrite(led, HIGH); 
       delay(150);
@@ -253,14 +262,14 @@ void loop() {
       digitalWrite(led, LOW); 
       }
     }
-    if((botaoAzul == 1) && (lin2 == 8)){
+    if((botaoAzul == 1) && (bitRead(MUSICA_1[i][7], 4))){
       digitalWrite(pinBuz,1);
       digitalWrite(led, HIGH); 
       delay(150);
       digitalWrite(pinBuz, 0);
       digitalWrite(led, LOW); 
     }
-    if((botaoBranco == 1) && (lin3 == 8)){
+    if((botaoBranco == 1) && (bitRead(MUSICA_1[i][7], 6))){
       digitalWrite(pinBuz,1);
       digitalWrite(led, HIGH); 
       delay(150);
