@@ -4,7 +4,8 @@
 #define cs   3
 #define clk  4
 
-const int led = 15;
+const int ledAcerto = 15;
+const int ledErro = 16;
 const int pinBuz = 14; //Buzzer Pin
 const int pinVerm = 5; // Push-button vermelho coluna 6
 const int pinAzul = 6; // Push-button azul coluna 3
@@ -214,7 +215,8 @@ const int MUSICA_1_LEN = sizeof(MUSICA_1)/8;
 void setup() {
   int i = 0;
   //Serial.begin(9600);
-  pinMode(led, OUTPUT);
+  pinMode(ledAcerto, OUTPUT);
+  pinMode(ledErro, OUTPUT);
   pinMode(pinBuz,OUTPUT); 
   pinMode(pinVerm,INPUT); 
   pinMode(pinAzul,INPUT); 
@@ -255,26 +257,42 @@ void loop() {
     botaoBranco = digitalRead(pinBranco); //Put the reading value of the switch on botao
     if(botaoVerm == 1){
       if(bitRead(MUSICA_1[i][7], 1)){
-      digitalWrite(pinBuz,1);
-      digitalWrite(led, HIGH); 
-      delay(150);
-      digitalWrite(pinBuz, 0);
-      digitalWrite(led, LOW); 
+        digitalWrite(pinBuz,1);
+        digitalWrite(ledAcerto, HIGH); 
+        delay(150);
+        digitalWrite(pinBuz, 0);
+        digitalWrite(ledAcerto, LOW); 
+      } else{
+        digitalWrite(ledErro, HIGH); 
+        delay(100);
+        digitalWrite(ledErro, LOW); 
       }
     }
-    if((botaoAzul == 1) && (bitRead(MUSICA_1[i][7], 4))){
-      digitalWrite(pinBuz,1);
-      digitalWrite(led, HIGH); 
-      delay(150);
-      digitalWrite(pinBuz, 0);
-      digitalWrite(led, LOW); 
-    }
-    if((botaoBranco == 1) && (bitRead(MUSICA_1[i][7], 6))){
-      digitalWrite(pinBuz,1);
-      digitalWrite(led, HIGH); 
-      delay(150);
-      digitalWrite(pinBuz, 0);
-      digitalWrite(led, LOW); 
-    }
+    if(botaoAzul == 1){
+      if(bitRead(MUSICA_1[i][7], 4)){
+        digitalWrite(pinBuz,1);
+        digitalWrite(ledAcerto, HIGH); 
+        delay(150);
+        digitalWrite(pinBuz, 0);
+        digitalWrite(ledAcerto, LOW); 
+      } else{
+        digitalWrite(ledErro, HIGH); 
+        delay(100);
+        digitalWrite(ledErro, LOW);
+      }
+    } 
+    if(botaoBranco == 1){
+      if(bitRead(MUSICA_1[i][7], 6)){
+        digitalWrite(pinBuz,1);
+        digitalWrite(ledAcerto, HIGH); 
+        delay(150);
+        digitalWrite(pinBuz, 0);
+        digitalWrite(ledAcerto, LOW); 
+      }else {
+        digitalWrite(ledErro, HIGH); 
+        delay(100);
+        digitalWrite(ledErro, LOW);
+      }
+    } 
   }
 }
