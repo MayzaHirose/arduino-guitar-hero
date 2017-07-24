@@ -23,6 +23,10 @@
 #define LED_VERM    15 //ANALOGICO
 #define BZR_ACERTO  16 //ANALOGICO
 #define BZR_ERRO    17 //ANALOGICO
+
+#define COL_BTN_BRANCO 1
+#define COL_BTN_AZUL   3
+#define COL_BTN_VERM   6
   
 LedControl MATRIZ(DIN_MATRIZ,CLK_MATRIZ,CS_MATRIZ, QTD_MODULOS);
 LiquidCrystal LCD(RS, ENABLE, D4, D5, D6, D7);
@@ -65,7 +69,7 @@ int jogoSelecionado = 1;
 int contadorJogo;
 
 void setup(){
-  Serial.begin(9600);
+  //Serial.begin(9600);
   inicializaPins();
   inicializaMatriz();
   inicializaLCD();
@@ -76,6 +80,7 @@ void loop(){
   if(jogoSelecionado != 0){
     displayContagemRegressiva();
     iniciaJogo(jogoSelecionado);
+    jogoSelecionado = 0;
   }
 }
 
@@ -128,42 +133,31 @@ void iniciaJogo(int jogo){
 }
 
 void jogo1(){
+  boolean acertou = false;
+  int seqMaxima = 0;
+  
   for(int i=0;i<JOGO_1_LEN;i++){
+    atualizaLCD();
     displayImagemMatriz(JOGO_1[i]);
     delay(TEMPO_MAX_BOTAO); 
     btn_branco = digitalRead(BTN_BRANCO); 
     btn_azul = digitalRead(BTN_AZUL); 
     btn_verm = digitalRead(BTN_VERM);
  
-    if(btn_branco == HIGH){
-      Serial.println("1");
-      if(verificaAcerto(1)){
-        digitalWrite(LED_VERM, LOW); 
-        digitalWrite(LED_VERDE, HIGH); 
-      } else {
-        digitalWrite(LED_VERDE, LOW); 
-        digitalWrite(LED_VERM, HIGH);
-      }
+    if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcerto(1, JOGO_1[i]);
+      seqMaxima = atualizaPlacar(acertou, seqMaxima);
+      acendeLedErroOuAcerto(acertou);
     }
-    if(btn_azul == HIGH){
-      Serial.println("2");
-      if(verificaAcerto(2)){
-        digitalWrite(LED_VERM, LOW); 
-        digitalWrite(LED_VERDE, HIGH); 
-      } else {
-        digitalWrite(LED_VERDE, LOW); 
-        digitalWrite(LED_VERM, HIGH);
-      }
+    if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcerto(2, JOGO_1[i]);
+      seqMaxima = atualizaPlacar(acertou, seqMaxima);
+      acendeLedErroOuAcerto(acertou);
     }
-    if(btn_verm == HIGH){
-      Serial.println("3");
-      if(verificaAcerto(3)){
-        digitalWrite(LED_VERM, LOW); 
-        digitalWrite(LED_VERDE, HIGH); 
-      } else {
-        digitalWrite(LED_VERDE, LOW); 
-        digitalWrite(LED_VERM, HIGH);
-      }
+    if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcerto(3, JOGO_1[i]);
+      seqMaxima = atualizaPlacar(acertou, seqMaxima);
+      acendeLedErroOuAcerto(acertou);
     }
   }
 }
@@ -185,7 +179,61 @@ void displayImagemMatriz(uint64_t imagem) {
   }
 }
 
-boolean verificaAcerto(int botao){
-  return true;
+boolean verificaAcerto(int botao, uint64_t estado){
+  byte linha;
+  switch(botao){
+    case 1: //botao branco, coluna 1
+      linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
+      return bitRead(linha, COL_BTN_BRANCO);
+      break;
+    case 2: //botao azul, coluna 3
+      linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
+      return bitRead(linha, COL_BTN_AZUL);
+      break;
+    case 3: //botao vermelho, coluna 6
+      linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
+      return bitRead(linha, COL_BTN_VERM);
+      break;
+  }
+}
+
+int atualizaPlacar(boolean acertou, int seqMax){
+  if(acertou){
+    acertos++;
+    if(sequencia < seqMax){
+      sequencia = seqMax + 1;
+    }
+    return seqMax++;
+  } else {
+    erros++;
+    if(sequencia < seqMax){
+      sequencia = seqMax;
+    }
+    return seqMax = 0;
+  }
+}
+
+void atualizaLCD(){
+  LCD.setCursor(0, 1);
+  LCD.print("Pt:");
+  LCD.print(acertos);
+  LCD.setCursor(5, 1);
+  LCD.print("E:");
+  LCD.print(erros);
+  LCD.setCursor(10, 1);
+  LCD.print("S:");
+  LCD.print(sequencia);
+}
+
+void acendeLedErroOuAcerto(boolean isAcerto){
+  if(isAcerto){
+    digitalWrite(LED_VERDE, HIGH);
+    delay(200);
+    digitalWrite(LED_VERDE, LOW); 
+  } else {
+    digitalWrite(LED_VERM, HIGH);
+    delay(200);
+    digitalWrite(LED_VERM, LOW); 
+  }
 }
 
