@@ -1,20 +1,23 @@
 #include <LedControl.h>
- 
+#include <LiquidCrystal.h>
+
 #define din  2
 #define cs   3
 #define clk  4
 
-const int ledAcerto = 15;
-const int ledErro = 16;
-const int pinBuzErro = 14; //Buzzer Pin
-const int pinBuzAcerto = 17;
-const int pinVerm = 5; // Push-button vermelho coluna 6
+const int ledAcerto = 14;
+const int ledErro = 15;
+const int pinBuzAcerto = 16;
+const int pinBuzErro = 17; //Buzzer Pin
+const int pinVerm = 7; // Push-button vermelho coluna 6
 const int pinAzul = 6; // Push-button azul coluna 3
-const int pinBranco = 7; // Push-button branco columa 1
+const int pinBranco = 5; // Push-button branco columa 1
 int botaoVerm, botaoAzul, botaoBranco; 
 int contadorJogo = 0;
   
 LedControl ledCtrl = LedControl(din,clk,cs, 1);
+//LiquidCrystal(rs, enable, d4, d5, d6, d7)
+LiquidCrystal LCD(13, 12, 11, 10, 9, 8);
 
 const byte CONTAGEM[][8] = {
 {
@@ -47,6 +50,54 @@ const byte CONTAGEM[][8] = {
 }};
 const int CONTAGEM_LEN = sizeof(CONTAGEM)/8;
 
+const byte FIM_MUSICA_1[][8] = {
+{
+  B11111111,
+  B00000000,
+  B00000000,
+  B00000000,
+  B01000000,
+  B00000010,
+  B00010000,
+  B00010000
+},{
+  B11111111,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B01000000,
+  B00000010,
+  B00010000
+},{
+  B11111111,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B01000000,
+  B00000010
+},{
+  B11111111,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B01000000
+},{
+  B11111111,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000,
+  B00000000
+}};
+const int FIM_LEN = sizeof(FIM_MUSICA_1)/8;
 /*const byte MUSICA_1[][8] = {
 {
   B11111111,
@@ -388,6 +439,12 @@ void setup() {
   ledCtrl.shutdown(0, false);
   ledCtrl.setIntensity(0, 1);
   ledCtrl.clearDisplay(0);
+  
+  LCD.begin(16, 2);
+  LCD.print("hello, world!");
+  LCD.begin(16, 2);
+  LCD.print("hello, world!");
+  
   while(i<3){
     displayContador(CONTAGEM[i]);
     i++;
@@ -412,7 +469,8 @@ void displayJogo(const byte* jogo) {
 }
 
 void loop() {
-  
+  LCD.setCursor(0, 1);
+  LCD.print(millis() / 1000);
   //for(int i=0;i<MUSICA_1_LEN;i++){
   if(contadorJogo < MUSICA_1_LEN){
     displayJogo(MUSICA_1[contadorJogo]); 
@@ -425,51 +483,73 @@ void loop() {
         noTone(pinBuzAcerto);
       }
     } else {delay(300);} 
-    //delay(300);
     botaoVerm = digitalRead(pinVerm); //Put the reading value of the switch on botao
     botaoAzul = digitalRead(pinAzul); //Put the reading value of the switch on botao
     botaoBranco = digitalRead(pinBranco); //Put the reading value of the switch on botao
-    if(botaoVerm == 1){
-      if(bitRead(MUSICA_1[contadorJogo][7], 1)){
-        digitalWrite(ledAcerto, HIGH); 
-        delay(150);
-        digitalWrite(ledAcerto, LOW); 
-      } else{
-        digitalWrite(pinBuzErro,1);
-        digitalWrite(ledErro, HIGH); 
-        delay(100);
-        digitalWrite(pinBuzErro,0);
-        digitalWrite(ledErro, LOW); 
-      }
-    }
-    if(botaoAzul == 1){
-      if(bitRead(MUSICA_1[contadorJogo][7], 4)){
-        digitalWrite(ledAcerto, HIGH); 
-        delay(150);
-        digitalWrite(ledAcerto, LOW); 
-      } else{
-        digitalWrite(pinBuzErro,1);
-        digitalWrite(ledErro, HIGH); 
-        delay(100);
-        digitalWrite(pinBuzErro,0);
-        digitalWrite(ledErro, LOW);
-      }
-    } 
-    if(botaoBranco == 1){
-      if(bitRead(MUSICA_1[contadorJogo][7], 6)){
-        digitalWrite(ledAcerto, HIGH); 
-        delay(150);
-        digitalWrite(ledAcerto, LOW); 
-      }else {
-        digitalWrite(pinBuzErro,1);
-        digitalWrite(ledErro, HIGH); 
-        delay(100);
-        digitalWrite(pinBuzErro,0);
-        digitalWrite(ledErro, LOW);
-      }
-    }
+    //if(contadorJogo > 6){
+      //if(nota<156){
+       // delay(pausadepoisdasnotas[nota]);
+        if(botaoVerm == 1){
+          if(bitRead(MUSICA_1[contadorJogo][7], 1)){
+            digitalWrite(ledAcerto, HIGH); 
+            //delay(150);
+            tone(pinBuzAcerto, melodia[nota],duracaodasnotas[nota]);
+            digitalWrite(ledAcerto, LOW); 
+          } else{
+            //digitalWrite(pinBuzErro,1);
+            digitalWrite(ledErro, HIGH); 
+            delay(100);
+            //digitalWrite(pinBuzErro,0);
+            digitalWrite(ledErro, LOW); 
+          }
+        }
+        if(botaoAzul == 1){
+          if(bitRead(MUSICA_1[contadorJogo][7], 4)){
+            digitalWrite(ledAcerto, HIGH); 
+            //delay(150);
+            tone(pinBuzAcerto, melodia[nota],duracaodasnotas[nota]);
+            digitalWrite(ledAcerto, LOW); 
+          } else{
+            //digitalWrite(pinBuzErro,1);
+            digitalWrite(ledErro, HIGH); 
+            delay(100);
+            //digitalWrite(pinBuzErro,0);
+            digitalWrite(ledErro, LOW);
+          }
+        } 
+        if(botaoBranco == 1){
+          if(bitRead(MUSICA_1[contadorJogo][7], 6)){
+            digitalWrite(ledAcerto, HIGH); 
+            //delay(150);
+            tone(pinBuzAcerto, melodia[nota],duracaodasnotas[nota]);
+            digitalWrite(ledAcerto, LOW); 
+          }else {
+            //digitalWrite(pinBuzErro,1);
+            digitalWrite(ledErro, HIGH); 
+            delay(100);
+            //digitalWrite(pinBuzErro,0);
+            digitalWrite(ledErro, LOW);
+          }
+        }
+        //nota++;
+        //contadorJogo++; 
+      //}else {
+       // noTone(pinBuzAcerto);
+      //}
+    //}else {delay(300);}
+    //nota++;
     contadorJogo++; 
   } else{
-    contadorJogo = 7;
+    if(nota <156)
+      contadorJogo = 7; //para ficar o loop
+    else {
+      //if(!(contadorJogo < MUSICA_1_LEN)){ //para a matriz terminar de descer antes de começar a musica novamente
+        for(int i=0;i<FIM_LEN;i++){
+          displayJogo(FIM_MUSICA_1[i]); 
+        }
+        contadorJogo = 0;
+        nota = 0;
+      //} else {contadorJogo++;}
+    }
   }
 }
