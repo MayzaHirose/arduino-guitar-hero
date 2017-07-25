@@ -23,6 +23,7 @@
 #define LED_VERM    15 //ANALOGICO
 #define BZR_ACERTO  16 //ANALOGICO
 #define BZR_ERRO    17 //ANALOGICO
+#define SPEAKER     19 //ANALOGICO
 
 #define COL_BTN_BRANCO 1
 #define COL_BTN_AZUL   3
@@ -30,6 +31,45 @@
   
 LedControl MATRIZ(DIN_MATRIZ,CLK_MATRIZ,CS_MATRIZ, QTD_MODULOS);
 LiquidCrystal LCD(RS, ENABLE, D4, D5, D6, D7);
+
+//melodia do MARIO THEME
+int melodia[] = {660,660,660,510,660,770,380,510,380,320,440,480,
+                 450,430,380,660,760,860,700,760,660,520,580,480,
+                 510,380,320,440,480,450,430,380,660,760,860,700,
+                 760,660,520,580,480,500,760,720,680,620,650,380,
+                 430,500,430,500,570,500,760,720,680,620,650,1020,
+                 1020,1020,380,500,760,720,680,620,650,380,430,500,
+                 430,500,570,585,550,500,380,500,500,500,500,760,720,
+                 680,620,650,380,430,500,430,500,570,500,760,720,680,
+                 620,650,1020,1020,1020,380,500,760,720,680,620,650,380,
+                 430,500,430,500,570,585,550,500,380,500,500,500,500,500,
+                 500,500,580,660,500,430,380,500,500,500,500,580,660,870,
+                 760,500,500,500,500,580,660,500,430,380,660,660,660,510,660,770,380};
+
+//duraçao de cada nota
+int duracaodasnotas[] = {100,100,100,100,100,100,100,100,100,100,100,80,
+                         100,100,100,80,50,100,80,50,80,80,80,80,100,100,
+                         100,100,80,100,100,100,80,50,100,80,50,80,80,80,
+                         80,100,100,100,100,150,150,100,100,100,100,100,
+                         100,100,100,100,100,150,200,80,80,80,100,100,100,
+                         100,100,150,150,100,100,100,100,100,100,100,100,100,
+                         100,100,100,100,100,100,100,100,150,150,100,100,100,
+                         100,100,100,100,100,100,100,150,200,80,80,80,100,100,
+                         100,100,100,150,150,100,100,100,100,100,100,100,100,100,
+                         100,100,100,100,60,80,60,80,80,80,80,80,80,60,80,60,80,80,
+                         80,80,80,60,80,60,80,80,80,80,80,80,100,100,100,100,100,100,100};
+
+int pausadepoisdasnotas[] ={150,300,300,100,300,550,575,450,400,500,300,330,150,300,
+                            200,200,150,300,150,350,300,150,150,500,450,400,500,300,
+                            330,150,300,200,200,150,300,150,350,300,150,150,500,300,
+                            100,150,150,300,300,150,150,300,150,100,220,300,100,150,
+                            150,300,300,300,150,300,300,300,100,150,150,300,300,150,
+                            150,300,150,100,420,450,420,360,300,300,150,300,300,100,
+                            150,150,300,300,150,150,300,150,100,220,300,100,150,150,
+                            300,300,300,150,300,300,300,100,150,150,300,300,150,150,
+                            300,150,100,420,450,420,360,300,300,150,300,150,300,350,
+                            150,350,150,300,150,600,150,300,350,150,150,550,325,600,
+                            150,300,350,150,350,150,300,150,600,150,300,300,100,300,550,575};
 
 //CONTAGEM REGRESSIVA
 const uint64_t CONTAGEM[] = {
@@ -51,12 +91,13 @@ const uint64_t JOGO_1[] = {
   0x40024008020808ff,
   0x02400802080840ff,
   0x40080208084002ff,
-  0x08020808400200ff,
-  0x02080840020000ff,
-  0x08084002000000ff,
-  0x08400200000000ff,
-  0x40020000000000ff,
-  0x02000000000000ff,
+  0x08020808400208ff,
+  0x02080840020840ff,
+  0x08084002084002ff,
+  0x08400208400240ff,
+  0x40020840024008ff,
+  0x02084002400802ff,
+  0x08400240080208ff,
   0x00000000000000ff
 };
 const int JOGO_1_LEN = sizeof(JOGO_1)/8;
@@ -73,6 +114,7 @@ int comecar = 0;
 
 void setup(){
   //Serial.begin(9600);
+
   LCD.begin(16, 2);
   inicializaPins();
   inicializaMatriz();
@@ -193,35 +235,59 @@ void iniciaJogo(int jogo){
 
 void jogo1(){
   boolean acertou = false;
-
+  int nota = 0;
+  int index = -1;
+  
   LCD.clear();
   LCD.setCursor(0, 0);
   LCD.print("Placar:");
   
-  for(int i=0;i<JOGO_1_LEN;i++){
+  for(int i=0;i<156;i++){
+    index++;
+    if(index == 18) index=8;
     atualizaLCD();
-    displayImagemMatriz(JOGO_1[i]);
-    delay(TEMPO_MAX_BOTAO); 
+    displayImagemMatriz(JOGO_1[index]);
+    
+    if(i<8){
+      tone(BZR_ACERTO, melodia[nota],duracaodasnotas[nota]);
+      //delay(pausadepoisdasnotas[nota]-TEMPO_MAX_BOTAO);
+    }
+    delay(pausadepoisdasnotas[nota]);
+    //delay(TEMPO_MAX_BOTAO); 
     btn_branco = digitalRead(BTN_BRANCO); 
     btn_azul = digitalRead(BTN_AZUL); 
     btn_verm = digitalRead(BTN_VERM);
  
     if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcerto(1, JOGO_1[i]);
+      acertou = verificaAcerto(1, JOGO_1[index]);
+      if(acertou){
+        tone(BZR_ACERTO, melodia[nota],duracaodasnotas[nota]);
+        //delay(pausadepoisdasnotas[nota]);
+      }
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
     if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcerto(2, JOGO_1[i]);
+      acertou = verificaAcerto(2, JOGO_1[index]);
+      if(acertou){
+        tone(BZR_ACERTO, melodia[nota],duracaodasnotas[nota]);
+        //delay(pausadepoisdasnotas[nota]);
+      }
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
     if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcerto(3, JOGO_1[i]);
+      acertou = verificaAcerto(3, JOGO_1[index]);
+      if(acertou){
+        tone(BZR_ACERTO, melodia[nota],duracaodasnotas[nota]);
+        //delay(pausadepoisdasnotas[nota]);
+      }
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
+    nota++;
   }
+  noTone(BZR_ACERTO);
 }
 
 void jogo2(){
