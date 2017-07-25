@@ -64,9 +64,11 @@ const int JOGO_1_LEN = sizeof(JOGO_1)/8;
 const int TEMPO_MAX_BOTAO = 200;
 
 int btn_branco, btn_azul, btn_verm; 
-int acertos, erros, sequencia;
+int acertos, erros, seqMax, seqAtual;
 int jogoSelecionado = 1;
-int contadorJogo;
+int opcaoEsq = 0;
+int opcaoDir = 0;
+int comecar = 0;
 
 void setup(){
   //Serial.begin(9600);
@@ -77,10 +79,31 @@ void setup(){
 }
 
 void loop(){
-  if(jogoSelecionado != 0){
+  displayMenu(jogoSelecionado);
+  delay(200);
+  opcaoEsq = digitalRead(BTN_BRANCO);
+  opcaoDir = digitalRead(BTN_VERM);
+  comecar = digitalRead(BTN_AZUL);
+  
+  if(!opcaoEsq){
+    if(jogoSelecionado > 1){
+      jogoSelecionado--;
+    }
+  }
+  if(!opcaoDir){
+    if(jogoSelecionado < 5){
+      jogoSelecionado++;
+    }
+  }
+    
+  if(!comecar){
     displayContagemRegressiva();
     iniciaJogo(jogoSelecionado);
-    jogoSelecionado = 0;
+    jogoSelecionado = 1;
+    displayResultado();
+    delay(5000);
+    LCD.clear();
+    inicializaLCD();
   }
 }
 
@@ -102,13 +125,35 @@ void inicializaMatriz(){
 
 void inicializaLCD(){
   LCD.begin(16, 2);
-  LCD.print("> 3 JOGOS EM 1 <");
+  LCD.print("> 4 JOGOS EM 1 <");
 }
 
 void inicializaPlacarJogo(){
   acertos = 0;
   erros = 0;
-  sequencia = 0;
+  seqMax = 0;
+  seqAtual = 0;
+}
+
+void displayMenu(int jogo){
+  LCD.setCursor(0,1);
+  switch(jogo){
+    case 1:
+      LCD.print(">1   2   3   4   5");
+      break;
+    case 2:
+      LCD.print(" 1  >2   3   4   5");
+      break;
+    case 3:
+      LCD.print(" 1   2  >3   4   5");
+      break;
+    case 4:
+      LCD.print(" 1   2   3  >4   5");
+      break;
+    case 5:
+      LCD.print(" 1   2   3   4  >5");
+      break;
+  }
 }
 
 void displayContagemRegressiva(){
@@ -134,7 +179,10 @@ void iniciaJogo(int jogo){
 
 void jogo1(){
   boolean acertou = false;
-  int seqMaxima = 0;
+
+  LCD.clear();
+  LCD.setCursor(0, 0);
+  LCD.print("Placar:");
   
   for(int i=0;i<JOGO_1_LEN;i++){
     atualizaLCD();
@@ -146,17 +194,17 @@ void jogo1(){
  
     if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
       acertou = verificaAcerto(1, JOGO_1[i]);
-      seqMaxima = atualizaPlacar(acertou, seqMaxima);
+      atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
     if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
       acertou = verificaAcerto(2, JOGO_1[i]);
-      seqMaxima = atualizaPlacar(acertou, seqMaxima);
+      atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
     if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
       acertou = verificaAcerto(3, JOGO_1[i]);
-      seqMaxima = atualizaPlacar(acertou, seqMaxima);
+      atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
   }
@@ -197,32 +245,30 @@ boolean verificaAcerto(int botao, uint64_t estado){
   }
 }
 
-int atualizaPlacar(boolean acertou, int seqMax){
+void atualizaPlacar(boolean acertou){
   if(acertou){
     acertos++;
-    if(sequencia < seqMax){
-      sequencia = seqMax + 1;
+    seqAtual++;
+    if(seqMax < seqAtual){
+      seqMax = seqAtual;
     }
-    return seqMax++;
   } else {
     erros++;
-    if(sequencia < seqMax){
-      sequencia = seqMax;
+    if(seqMax < seqAtual){
+      seqMax = seqAtual;
     }
-    return seqMax = 0;
+    seqAtual = 0;
   }
 }
 
 void atualizaLCD(){
   LCD.setCursor(0, 1);
-  LCD.print("Pt:");
+  LCD.print("Pts:");
   LCD.print(acertos);
-  LCD.setCursor(5, 1);
-  LCD.print("E:");
-  LCD.print(erros);
-  LCD.setCursor(10, 1);
-  LCD.print("S:");
-  LCD.print(sequencia);
+  
+  LCD.setCursor(8, 1);
+  LCD.print("Seq:");
+  LCD.print(seqAtual);
 }
 
 void acendeLedErroOuAcerto(boolean isAcerto){
@@ -234,6 +280,52 @@ void acendeLedErroOuAcerto(boolean isAcerto){
     digitalWrite(LED_VERM, HIGH);
     delay(200);
     digitalWrite(LED_VERM, LOW); 
+  }
+}
+
+void displayResultado(){
+  LCD.clear();
+  LCD.setCursor(0,0); 
+  LCD.print("Seu placar: ");
+  delay(300);
+ 
+  for(int i=15;i>=0;i--){
+    LCD.setCursor(i,1); 
+    LCD.print("P: ");
+    delay(50);
+  }
+
+  for(int i=15;i>=2;i--){
+    LCD.setCursor(i,1); 
+    LCD.print(acertos);
+    LCD.print(" ");
+    delay(50);
+  }
+
+  for(int i=15;i>=5;i--){
+    LCD.setCursor(i,1); 
+    LCD.print("E: ");
+    delay(50);
+  }
+
+  for(int i=15;i>=7;i--){
+    LCD.setCursor(i,1); 
+    LCD.print(erros);
+    LCD.print(" ");
+    delay(50);
+  }
+
+  for(int i=15;i>=10;i--){
+    LCD.setCursor(i,1); 
+    LCD.print("S: ");
+    delay(50);
+  }
+
+  for(int i=15;i>=12;i--){
+    LCD.setCursor(i,1); 
+    LCD.print(seqMax);
+    LCD.print(" ");
+    delay(50);
   }
 }
 
