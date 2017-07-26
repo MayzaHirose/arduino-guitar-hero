@@ -54,8 +54,6 @@ void loop(){
     displayContagemRegressiva();
     iniciaJogo(jogoSelecionado);
     jogoSelecionado = 1;
-    displayResultado();
-    delay(5000);
     inicializaMatriz();
     inicializaPlacarJogo();
   }
@@ -223,23 +221,9 @@ void jogo1(){
     displayImagemMatriz(JOGO_1[index]);
     delay(300);
     index++;
-  }  
-}
-
-void jogo2(){
-  
-}
-
-void jogo3(){
-  
-}
-
-void jogo4(){
-  
-}
-
-void jogo5(){
-  
+  }
+  displayResultado();
+  delay(5000);  
 }
 
 void displayImagemMatriz(uint64_t imagem) {
@@ -343,6 +327,110 @@ void displayResultado(){
     LCD.print(" ");
     delay(50);
   }
+}
+
+void jogo2(){
+  int matriz[8][8];
+  boolean bateu = false;
+  int direcao = 3; // ESQ=1 CIMA=2 DIR=3 BAIXO=4
+  int delei = 300;
+  int row,col;
+  
+  LCD.clear();
+  LCD.setCursor(0, 0);
+  LCD.print("Placar:");
+  LCD.setCursor(0, 1);
+  LCD.print("Pts:");
+  LCD.print(acertos);
+  
+  LCD.setCursor(8, 1);
+  LCD.print("Tam:");
+  LCD.print(seqMax);
+
+  //Ponto Inicial
+  //matriz[rand()%8][rand()%8] = 1;
+  matriz[1][0] = 1;
+  row = 1;
+  col = 0;
+  //Poe comida
+  //matriz[rand()%8][rand()%8] = 1;
+  matriz[2][6] = 1;
+  //bateu = andar(&matriz[8][8], direcao);
+  
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      MATRIZ.setLed(0, i, j, matriz[i][j]);
+    }
+  }
+  switch(direcao){
+    case: 1 //esquerda
+      if(col != 0){ //se nao estiver na parede esq ou coluna 0
+        matriz[row][col] = 0;
+        matriz[row][col-1] = 1;    
+      }else {
+        bateu = true;
+      }
+      break;
+    case: 2 //cima
+      if(row != 0){ //se nao estiver na parede esq ou coluna 0
+        matriz[row][col] = 0;
+        matriz[row-1][col] = 1;    
+      }else {
+        bateu = true;
+      }
+      break;
+    case: 3 //direita
+      if(col != 7){ //se nao estiver na parede esq ou coluna 0
+        matriz[row][col] = 0;
+        matriz[row][col+1] = 1;    
+      }else {
+        bateu = true;
+      }
+      break;
+    case: 4 //baixo
+      if(row != 7){ //se nao estiver na parede esq ou coluna 0
+        matriz[row][col] = 0;
+        matriz[row+1][col] = 1;    
+      }else {
+        bateu = true;
+      }
+      break;
+  }
+  matriz[
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      MATRIZ.setLed(0, i, j, matriz[i][j]);
+    }
+  }
+  
+  while(!bateu){
+      
+  }
+}
+
+boolean andar(int *matriz, int direcao){
+  inicializaMatriz();
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      MATRIZ.setLed(0, i, j, *matriz[i][j]);
+    }
+  }
+}
+
+void comer(){
+  
+}
+
+void jogo3(){
+  
+}
+
+void jogo4(){
+  
+}
+
+void jogo5(){
+  
 }
 
 
