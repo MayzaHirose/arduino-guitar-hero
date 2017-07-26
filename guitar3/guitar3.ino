@@ -1,32 +1,14 @@
 #include <LedControl.h>
 #include <LiquidCrystal.h>
+#include "pin_config.h"
+#include "mario_music.h"
+#include "matriz_jogo1.h"
 
-//PINS MATRIZ
-#define QTD_MODULOS 1
-#define DIN_MATRIZ  2
-#define CS_MATRIZ   3
-#define CLK_MATRIZ  4
-
-//PINS LCD
-#define RS      13
-#define ENABLE  12
-#define D4      11
-#define D5      10
-#define D6      9
-#define D7      8
-
-//PINS LED, BUZZER E BUTTON
-#define BTN_BRANCO  5 //coluna 1
-#define BTN_AZUL    6 //coluna 3
-#define BTN_VERM    7 //coluna 6
-#define LED_VERDE   14 //ANALOGICO
-#define LED_VERM    15 //ANALOGICO
-#define BZR_ACERTO  16 //ANALOGICO
-#define BZR_ERRO    17 //ANALOGICO
-
-#define COL_BTN_BRANCO 1
-#define COL_BTN_AZUL   3
-#define COL_BTN_VERM   6
+#define COL_BTN_BRANCO  1
+#define COL_BTN_AZUL    3
+#define COL_BTN_VERM    6
+#define TEMPO_MAX_BOTAO 200
+#define TEMPO_LED       100
   
 LedControl MATRIZ(DIN_MATRIZ,CLK_MATRIZ,CS_MATRIZ, QTD_MODULOS);
 LiquidCrystal LCD(RS, ENABLE, D4, D5, D6, D7);
@@ -39,75 +21,42 @@ const uint64_t CONTAGEM[] = {
 };
 const int CONTAGEM_LEN = sizeof(CONTAGEM)/8;
 
-const uint64_t JOGO_1[] = {
-  0x00000000000000ff,
-  0x00000000000008ff,
-  0x00000000000840ff,
-  0x00000000084002ff,
-  0x00000008400240ff,
-  0x00000840024008ff,
-  0x00084002400802ff,
-  0x08400240080208ff,
-  0x40024008020808ff,
-  0x02400802080840ff,
-  0x40080208084002ff,
-  0x08020808400200ff,
-  0x02080840020000ff,
-  0x08084002000000ff,
-  0x08400200000000ff,
-  0x40020000000000ff,
-  0x02000000000000ff,
-  0x00000000000000ff
-};
-const int JOGO_1_LEN = sizeof(JOGO_1)/8;
-
-const int TEMPO_MAX_BOTAO = 200;
-
 String frase = "5 JOGOS EM 1 - SELECIONE O JOGO - ";
 int btn_branco, btn_azul, btn_verm; 
 int acertos, erros, seqMax, seqAtual;
 int jogoSelecionado = 1;
-int opcaoEsq = 0;
-int opcaoDir = 0;
-int comecar = 0;
 
 void setup(){
   //Serial.begin(9600);
+
   LCD.begin(16, 2);
   inicializaPins();
   inicializaMatriz();
-  inicializaLCD(frase);
   inicializaPlacarJogo();
 }
 
 void loop(){
   frase = frase.substring(1,frase.length()) + frase.substring(0,1);
-  inicializaLCD(frase);
-  displayMenu(jogoSelecionado);
-  delay(200);
-  opcaoEsq = digitalRead(BTN_BRANCO);
-  opcaoDir = digitalRead(BTN_VERM);
-  comecar = digitalRead(BTN_AZUL);
-  
-  if(!opcaoEsq){
+  displayMenu(frase,jogoSelecionado);
+  delay(300);
+ 
+  if(!digitalRead(BTN_BRANCO)){
     if(jogoSelecionado > 1){
       jogoSelecionado--;
     }
   }
-  if(!opcaoDir){
+  else if(!digitalRead(BTN_VERM)){
     if(jogoSelecionado < 5){
       jogoSelecionado++;
     }
-  }
-    
-  if(!comecar){
+  }    
+  else if(!digitalRead(BTN_AZUL)){
     displayContagemRegressiva();
     iniciaJogo(jogoSelecionado);
     jogoSelecionado = 1;
     displayResultado();
     delay(5000);
     inicializaMatriz();
-    inicializaLCD(frase);
     inicializaPlacarJogo();
   }
 }
@@ -116,21 +65,18 @@ void inicializaPins(){
   pinMode(LED_VERDE, OUTPUT);
   pinMode(LED_VERM, OUTPUT);
   pinMode(BZR_ERRO,OUTPUT); 
-  pinMode(BZR_ACERTO,OUTPUT); 
-  pinMode(BTN_VERM,INPUT); 
-  pinMode(BTN_AZUL,INPUT); 
+  pinMode(BZR_RESERVA,OUTPUT);  
+  pinMode(SPEAKER,OUTPUT); 
   pinMode(BTN_BRANCO,INPUT);
+  pinMode(BTN_ROSA,INPUT); 
+  pinMode(BTN_AZUL,INPUT);
+  pinMode(BTN_VERM,INPUT); 
 }
 
 void inicializaMatriz(){
   MATRIZ.clearDisplay(0);
   MATRIZ.shutdown(0, false);
   MATRIZ.setIntensity(0, 1);
-}
-
-void inicializaLCD(String texto){ 
-  LCD.setCursor(0,0);
-  LCD.print(texto);
 }
 
 void inicializaPlacarJogo(){
@@ -140,7 +86,9 @@ void inicializaPlacarJogo(){
   seqAtual = 0;
 }
 
-void displayMenu(int jogo){
+void displayMenu(String texto, int jogo){
+  LCD.setCursor(0,0);
+  LCD.print(texto);
   LCD.setCursor(0,1);
   switch(jogo){
     case 1:
@@ -162,10 +110,19 @@ void displayMenu(int jogo){
 }
 
 void displayContagemRegressiva(){
+  LCD.clear();
+  LCD.setCursor(0,0);
+  LCD.print("PREPARAR.");
+  LCD.setCursor(0,1);
   for(int i=0;i<CONTAGEM_LEN;i++){
+    LCD.setCursor(i+9,0);
+    LCD.print(".");
     displayImagemMatriz(CONTAGEM[i]);
     delay(900);
   } 
+  LCD.setCursor(0,1);
+  LCD.print("GO!!!");
+  delay(1000);
 }
 
 void iniciaJogo(int jogo){
@@ -192,36 +149,81 @@ void iniciaJogo(int jogo){
 }
 
 void jogo1(){
-  boolean acertou = false;
-
+  boolean acertou = true;
+  int nota = 0;
+  int index = 0;
+  int pause = 0;
+  
   LCD.clear();
   LCD.setCursor(0, 0);
   LCD.print("Placar:");
+  LCD.setCursor(0, 1);
+  LCD.print("Pts:");
+  LCD.print(acertos);
   
-  for(int i=0;i<JOGO_1_LEN;i++){
-    atualizaLCD();
-    displayImagemMatriz(JOGO_1[i]);
-    delay(TEMPO_MAX_BOTAO); 
+  LCD.setCursor(8, 1);
+  LCD.print("Seq:");
+  LCD.print(seqAtual);
+
+  displayImagemMatriz(JOGO_1[index]);
+  delay(pausadepoisdasnotas[nota]);
+  
+  for(int i=0;i<156;i++){
+    
     btn_branco = digitalRead(BTN_BRANCO); 
     btn_azul = digitalRead(BTN_AZUL); 
     btn_verm = digitalRead(BTN_VERM);
  
     if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcerto(1, JOGO_1[i]);
+      acertou = verificaAcertou(1, JOGO_1[index]);
+      if(!acertou){
+        tone(BZR_ERRO, 262, 200);
+        pause = pausadepoisdasnotas[nota] - TEMPO_LED;
+        if(pause < 0) {pause=0;}
+        delay(pause);
+      } 
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
-    if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcerto(2, JOGO_1[i]);
+    else if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcertou(2, JOGO_1[index]);
+      if(!acertou){
+        tone(BZR_ERRO, 262, 200);
+        pause = pausadepoisdasnotas[nota] - TEMPO_LED;
+        if(pause < 0) {pause=0;}
+        delay(pause);
+      } 
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
-    if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcerto(3, JOGO_1[i]);
+    else if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcertou(3, JOGO_1[index]);
+      if(!acertou){
+        tone(BZR_ERRO, 262, 200);
+        pause = pausadepoisdasnotas[nota] - TEMPO_LED;
+        if(pause < 0) {pause=0;}
+        delay(pause);
+      } 
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
+    if(index == 17){index=8;} else {index++;}
+    
+    if(acertou) {
+      tone(SPEAKER, melodia[nota],duracaodasnotas[nota]);
+      displayImagemMatriz(JOGO_1[index]);
+      delay(pausadepoisdasnotas[nota]);
+    } else {displayImagemMatriz(JOGO_1[index]); acertou=true;}
+
+    nota++;
   }
+  noTone(SPEAKER);
+  noTone(BZR_ERRO);
+  while(index < JOGO_1_LEN){
+    displayImagemMatriz(JOGO_1[index]);
+    delay(300);
+    index++;
+  }  
 }
 
 void jogo2(){
@@ -249,19 +251,16 @@ void displayImagemMatriz(uint64_t imagem) {
   }
 }
 
-boolean verificaAcerto(int botao, uint64_t estado){
-  byte linha;
+boolean verificaAcertou(int botao, uint64_t estado){
+  byte linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
   switch(botao){
     case 1: //botao branco, coluna 1
-      linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
       return bitRead(linha, COL_BTN_BRANCO);
       break;
     case 2: //botao azul, coluna 3
-      linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
       return bitRead(linha, COL_BTN_AZUL);
       break;
     case 3: //botao vermelho, coluna 6
-      linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
       return bitRead(linha, COL_BTN_VERM);
       break;
   }
@@ -281,26 +280,21 @@ void atualizaPlacar(boolean acertou){
     }
     seqAtual = 0;
   }
-}
-
-void atualizaLCD(){
-  LCD.setCursor(0, 1);
-  LCD.print("Pts:");
+  LCD.setCursor(4, 1);
   LCD.print(acertos);
   
-  LCD.setCursor(8, 1);
-  LCD.print("Seq:");
+  LCD.setCursor(12, 1);
   LCD.print(seqAtual);
 }
 
-void acendeLedErroOuAcerto(boolean isAcerto){
-  if(isAcerto){
+void acendeLedErroOuAcerto(boolean acertou){
+  if(acertou){
     digitalWrite(LED_VERDE, HIGH);
-    delay(200);
+    delay(TEMPO_LED);
     digitalWrite(LED_VERDE, LOW); 
   } else {
     digitalWrite(LED_VERM, HIGH);
-    delay(200);
+    delay(TEMPO_LED);
     digitalWrite(LED_VERM, LOW); 
   }
 }
@@ -350,4 +344,5 @@ void displayResultado(){
     delay(50);
   }
 }
+
 
