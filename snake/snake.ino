@@ -40,6 +40,7 @@ boolean bateu = false;
 boolean comeu = false;
 
 void setup(){
+  Serial.begin(9600);
   LCD.begin(16, 2);
   inicializaPins();
   inicializaMatriz();
@@ -189,7 +190,8 @@ void jogo2(){
   exibeSnake();
   
   while(!bateu){
-    andar();   
+    andar();  
+    direcaoAtual = mudarDirecao; 
     delay(100);
     
     btn_branco = digitalRead(BTN_BRANCO); 
@@ -201,7 +203,6 @@ void jogo2(){
     else if(btn_rosa == LOW){mudarDirecao = CIMA;}
     else if(btn_azul == LOW){mudarDirecao = BAIXO;}
     else if(btn_verm == LOW){mudarDirecao = DIR;}
-    direcaoAtual = mudarDirecao;
     
     if(comeu){
       comeu = false;
@@ -282,7 +283,7 @@ void andar(){
   boolean esq = false;
   boolean dir = false;
   
-  if(direcaoAtual == (-1*mudarDirecao)){ mudarDirecao = direcaoAtual; }// Se tentar andar para a mesma direcao ou contrário ele nao muda nada
+  if(tamSnake != 1 && direcaoAtual == ((-1)*mudarDirecao)){ Serial.println("oposto"); mudarDirecao = direcaoAtual; }// Se tentar andar para a diracao contrário ele nao muda nada. Apenas no comeco
   switch(mudarDirecao){
     case ESQ: //esquerda
       if(cabecaY != 0){ //se nao estiver na parede esquerda ou coluna 0
