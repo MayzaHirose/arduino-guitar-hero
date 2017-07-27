@@ -1,14 +1,6 @@
 #include <LedControl.h>
 #include <LiquidCrystal.h>
 #include "pin_config.h"
-#include "mario_music.h"
-#include "matriz_jogo1.h"
-
-#define COL_BTN_BRANCO  1
-#define COL_BTN_AZUL    3
-#define COL_BTN_VERM    6
-#define TEMPO_MAX_BOTAO 200
-#define TEMPO_LED       100
 
 //Snake
 #define ESQ   1
@@ -37,9 +29,11 @@ int jogoSelecionado = 1;
 int matriz[8][8];
 int tamSnake = 1;
 int direcaoAtual = ESQ;
-int mudarDirecao = 1;
+int mudarDirecao = ESQ;
 int cabecaX = 0;
 int cabecaY = 0;
+int caudaX = 0;
+int caudaY = 0;
 int proximoX = 0;
 int proximoY = 0;
 boolean bateu = false;
@@ -166,83 +160,7 @@ void iniciaJogo(int jogo){
 }
 
 void jogo1(){
-  boolean acertou = true;
-  int nota = 0;
-  int index = 0;
-  int pause = 0;
   
-  LCD.clear();
-  LCD.setCursor(0, 0);
-  LCD.print("Placar:");
-  LCD.setCursor(0, 1);
-  LCD.print("Pts:");
-  LCD.print(acertos);
-  
-  LCD.setCursor(8, 1);
-  LCD.print("Seq:");
-  LCD.print(seqAtual);
-
-  displayImagemMatriz(JOGO_1[index]);
-  delay(pausadepoisdasnotas[nota]);
-  
-  for(int i=0;i<156;i++){
-    
-    btn_branco = digitalRead(BTN_BRANCO); 
-    btn_azul = digitalRead(BTN_AZUL); 
-    btn_verm = digitalRead(BTN_VERM);
- 
-    if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcertou(1, JOGO_1[index]);
-      if(!acertou){
-        tone(BZR_ERRO, 262, 200);
-        pause = pausadepoisdasnotas[nota] - TEMPO_LED;
-        if(pause < 0) {pause=0;}
-        delay(pause);
-      } 
-      atualizaPlacar(acertou);
-      acendeLedErroOuAcerto(acertou);
-    }
-    else if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcertou(2, JOGO_1[index]);
-      if(!acertou){
-        tone(BZR_ERRO, 262, 200);
-        pause = pausadepoisdasnotas[nota] - TEMPO_LED;
-        if(pause < 0) {pause=0;}
-        delay(pause);
-      } 
-      atualizaPlacar(acertou);
-      acendeLedErroOuAcerto(acertou);
-    }
-    else if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
-      acertou = verificaAcertou(3, JOGO_1[index]);
-      if(!acertou){
-        tone(BZR_ERRO, 262, 200);
-        pause = pausadepoisdasnotas[nota] - TEMPO_LED;
-        if(pause < 0) {pause=0;}
-        delay(pause);
-      } 
-      atualizaPlacar(acertou);
-      acendeLedErroOuAcerto(acertou);
-    }
-    if(index == 17){index=8;} else {index++;}
-    
-    if(acertou) {
-      tone(SPEAKER, melodia[nota],duracaodasnotas[nota]);
-      displayImagemMatriz(JOGO_1[index]);
-      delay(pausadepoisdasnotas[nota]);
-    } else {displayImagemMatriz(JOGO_1[index]); acertou=true;}
-
-    nota++;
-  }
-  noTone(SPEAKER);
-  noTone(BZR_ERRO);
-  while(index < JOGO_1_LEN){
-    displayImagemMatriz(JOGO_1[index]);
-    delay(300);
-    index++;
-  }
-  displayResultado();
-  delay(5000);  
 }
 
 void displayImagemMatriz(uint64_t imagem) {
@@ -251,100 +169,6 @@ void displayImagemMatriz(uint64_t imagem) {
     for (int j = 0; j < 8; j++) {
       MATRIZ.setLed(0, i, j, bitRead(linha, j));
     }
-  }
-}
-
-boolean verificaAcertou(int botao, uint64_t estado){
-  byte linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
-  switch(botao){
-    case 1: //botao branco, coluna 1
-      return bitRead(linha, COL_BTN_BRANCO);
-      break;
-    case 2: //botao azul, coluna 3
-      return bitRead(linha, COL_BTN_AZUL);
-      break;
-    case 3: //botao vermelho, coluna 6
-      return bitRead(linha, COL_BTN_VERM);
-      break;
-  }
-}
-
-void atualizaPlacar(boolean acertou){
-  if(acertou){
-    acertos++;
-    seqAtual++;
-    if(seqMax < seqAtual){
-      seqMax = seqAtual;
-    }
-  } else {
-    erros++;
-    if(seqMax < seqAtual){
-      seqMax = seqAtual;
-    }
-    seqAtual = 0;
-  }
-  LCD.setCursor(4, 1);
-  LCD.print(acertos);
-  
-  LCD.setCursor(12, 1);
-  LCD.print(seqAtual);
-}
-
-void acendeLedErroOuAcerto(boolean acertou){
-  if(acertou){
-    digitalWrite(LED_VERDE, HIGH);
-    delay(TEMPO_LED);
-    digitalWrite(LED_VERDE, LOW); 
-  } else {
-    digitalWrite(LED_VERM, HIGH);
-    delay(TEMPO_LED);
-    digitalWrite(LED_VERM, LOW); 
-  }
-}
-
-void displayResultado(){
-  LCD.clear();
-  LCD.setCursor(0,0); 
-  LCD.print("Seu placar: ");
-  delay(300);
- 
-  for(int i=15;i>=0;i--){
-    LCD.setCursor(i,1); 
-    LCD.print("P: ");
-    delay(50);
-  }
-
-  for(int i=15;i>=2;i--){
-    LCD.setCursor(i,1); 
-    LCD.print(acertos);
-    LCD.print(" ");
-    delay(50);
-  }
-
-  for(int i=15;i>=5;i--){
-    LCD.setCursor(i,1); 
-    LCD.print("E: ");
-    delay(50);
-  }
-
-  for(int i=15;i>=7;i--){
-    LCD.setCursor(i,1); 
-    LCD.print(erros);
-    LCD.print(" ");
-    delay(50);
-  }
-
-  for(int i=15;i>=10;i--){
-    LCD.setCursor(i,1); 
-    LCD.print("S: ");
-    delay(50);
-  }
-
-  for(int i=15;i>=12;i--){
-    LCD.setCursor(i,1); 
-    LCD.print(seqMax);
-    LCD.print(" ");
-    delay(50);
   }
 }
 
@@ -366,25 +190,23 @@ void jogo2(){
   poeComida();
   exibeSnake();
   delay(delai);
-  
-  andar();
-  
+ 
   while(!bateu){
-    Serial.println("!bateu");
-    exibeSnake();
+    andar();   
     delay(delai);
     if(comeu){
-      Serial.println("Comeu");
       comeu = false;
       acertos++;
       tamSnake++; 
-      poeComida();
+      //poeComida();
+      matriz[3][1] = COMIDA;
+      matriz[1][2] = 1;
       LCD.setCursor(4, 1);
       LCD.print(acertos);
       LCD.setCursor(12, 1);
       LCD.print(tamSnake);
     }
-    andar();
+    exibeSnake();
   }
   LCD.clear();
   LCD.setCursor(5, 0);
@@ -401,10 +223,12 @@ void jogo2(){
 
 void zerarSnake(){
   tamSnake = 1;
-  direcaoAtual = DIR;
-  mudarDirecao = DIR;
+  direcaoAtual = ESQ;
+  mudarDirecao = ESQ;
   cabecaX = 0;
   cabecaY = 0;
+  caudaX = 0;
+  caudaY = 0;
   proximoX = 0;
   proximoY = 0;
   bateu = false;
@@ -420,6 +244,8 @@ void pontoInicial(){
   /*cabecaX = rand()%8;
   cabecaY = rand()%8;
   matriz[cabecaX][cabecaY] = 1;*/
+  cabecaX = 1;
+  cabecaY = 7;
   matriz[1][7] = 1;
 }
 
@@ -454,10 +280,9 @@ void andar(){
   boolean esq = false;
   boolean dir = false;
   
-  if((direcaoAtual == mudarDirecao) || (direcaoAtual == (-1*mudarDirecao))) return; // Se tentar andar para a mesma direcao ou contrário ele nao muda nada
+  if(direcaoAtual == (-1*mudarDirecao)){ mudarDirecao = direcaoAtual; }// Se tentar andar para a mesma direcao ou contrário ele nao muda nada
   switch(mudarDirecao){
-    case 1: //esquerda
-      Serial.println("ESQ");
+    case ESQ: //esquerda
       if(cabecaY != 0){ //se nao estiver na parede esquerda ou coluna 0
         proximoX = cabecaX;
         proximoY = cabecaY - 1;
