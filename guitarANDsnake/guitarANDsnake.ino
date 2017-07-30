@@ -320,7 +320,9 @@ void displayResultado(){
 }
 
 void jogo2(){
-  int delai = 400;
+  int delai = 200;
+  int isGo = false;
+  
   LCD.clear();
   LCD.setCursor(0, 0);
   LCD.print("Placar:");
@@ -336,6 +338,22 @@ void jogo2(){
   pontoInicial();
   poeComida();
   exibeSnake();
+
+  while(!isGo){
+    if(!digitalRead(BTN_BRANCO)){
+      isGo = true;
+      proximaDirecao = ESQ;
+    } else if(!digitalRead(BTN_ROSA)){
+      isGo = true;
+      proximaDirecao = CIMA;
+    } else if(!digitalRead(BTN_AZUL)){
+      isGo = true;
+      proximaDirecao = BAIXO;
+    } else if(!digitalRead(BTN_VERM)){
+      isGo = true;
+      proximaDirecao = DIR;
+    }
+  }
   
   while(!bateu){
     andar();  
@@ -379,7 +397,7 @@ void jogo2(){
 }
 
 void zerarSnake(){
-  tamSnake = 1;
+  tamSnake = 2;
   direcaoAtual = ESQ;
   proximaDirecao = ESQ;
   cabecaX = 0;
@@ -399,6 +417,7 @@ void pontoInicial(){
   cabecaX = rand()%6+1;
   cabecaY = rand()%6+1;
   matriz[cabecaX][cabecaY] = 1;
+  matriz[cabecaX][cabecaY+1] = 1;
 }
 
 void poeComida(){
@@ -427,7 +446,6 @@ void andar(){
   boolean baixo = false;
   boolean esq = false;
   boolean dir = false;
-  int deOndeVeio = 0;
   
   if(tamSnake != 1 && direcaoAtual == ((-1)*proximaDirecao)){proximaDirecao = direcaoAtual; }// Se tentar andar para a diracao contrário ele nao muda nada. Apenas no comeco
   switch(proximaDirecao){

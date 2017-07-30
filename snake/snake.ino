@@ -1,75 +1,53 @@
 #include <LedControl.h>
 #include <LiquidCrystal.h>
 #include "pin_config.h"
-
-//Snake
-#define ESQ   1
-#define CIMA  2
-#define DIR   -1
-#define BAIXO -2
-#define COMIDA 3
+#include "guitar_vars.h"
+#include "snake_vars.h"
+#include "global_vars.h"
 
 LedControl MATRIZ(DIN_MATRIZ,CLK_MATRIZ,CS_MATRIZ, QTD_MODULOS);
 LiquidCrystal LCD(RS, ENABLE, D4, D5, D6, D7);
 
-//CONTAGEM REGRESSIVA
-const uint64_t CONTAGEM[] = {
-  0x3c66603860663c00,
-  0x7e060c3060663c00,
-  0x7e1818181c181800
-};
-const int CONTAGEM_LEN = sizeof(CONTAGEM)/8;
-
-String frase = "5 JOGOS EM 1 - SELECIONE O JOGO - ";
-int btn_branco, btn_rosa, btn_azul, btn_verm; 
-int acertos, erros, seqMax, seqAtual;
-int jogoSelecionado = 1;
-
-//Variáveis Snake
-int matriz[8][8];
-int tamSnake = 1;
-int direcaoAtual = ESQ;
-int mudarDirecao = ESQ;
-int cabecaX = 0;
-int cabecaY = 0;
-int proximoX = 0;
-int proximoY = 0;
-boolean bateu = false;
-boolean comeu = false;
-
-void setup(){
+void setup() {
   Serial.begin(9600);
-  LCD.begin(16, 2);
-  inicializaPins();
-  inicializaMatriz();
-  inicializaPlacarJogo();
+
+  inicializaModulos();
+  zeraMatriz();
+  zeraLCD();
+  zeraPlacar();
 }
 
-void loop(){
-  frase = frase.substring(1,frase.length()) + frase.substring(0,1);
-  displayMenu(frase,jogoSelecionado);
-  delay(300);
- 
+void loop() {
+  millisExecucao = 300;
+  millisCorrente = millis();    //Tempo atual em ms
+  if(millisCorrente - millisAnterior >= millisExecucao){
+    millisAnterior = millisCorrente;
+    menuFrase = menuFrase.substring(1,menuFrase.length()) + menuFrase.substring(0,1);
+    displayFrase();
+  }
+  displayMenu();
+  
   if(!digitalRead(BTN_BRANCO)){
-    if(jogoSelecionado > 1){
+    if(jogoSelecionado == 2){
       jogoSelecionado--;
     }
   }
   else if(!digitalRead(BTN_VERM)){
-    if(jogoSelecionado < 5){
+    if(jogoSelecionado == 1){
       jogoSelecionado++;
     }
   }    
-  else if(!digitalRead(BTN_AZUL)){
+  else if(!digitalRead(BTN_ROSA) || !digitalRead(BTN_AZUL)){
     displayContagemRegressiva();
-    iniciaJogo(jogoSelecionado);
+    iniciaJogo();
     jogoSelecionado = 1;
-    inicializaMatriz();
-    inicializaPlacarJogo();
+    zeraMatriz();
+    zeraPlacar();
   }
 }
 
-void inicializaPins(){
+void inicializaModulos(){
+  LCD.begin(16,2);
   pinMode(LED_VERDE, OUTPUT);
   pinMode(LED_VERM, OUTPUT);
   pinMode(BZR_ERRO,OUTPUT); 
@@ -81,74 +59,56 @@ void inicializaPins(){
   pinMode(BTN_VERM,INPUT); 
 }
 
-void inicializaMatriz(){
+void zeraMatriz(){
   MATRIZ.clearDisplay(0);
   MATRIZ.shutdown(0, false);
   MATRIZ.setIntensity(0, 1);
 }
 
-void inicializaPlacarJogo(){
+void zeraLCD(){
+  LCD.clear();
+  LCD.setCursor(0,0);
+}
+
+void zeraPlacar(){
   acertos = 0;
   erros = 0;
   seqMax = 0;
   seqAtual = 0;
 }
 
-void displayMenu(){
+void displayFrase(){
   LCD.setCursor(0,0);
-  LCD.print(mainFrase);
+  LCD.print(menuFrase);
+}
+
+void displayMenu(){
   LCD.setCursor(0,1);
   switch(jogoSelecionado){
     case 1:
-      LCD.print(" >Guitar   Snake");
+      LCD.print(">Guitar   Snake");
       break;
     case 2:
-      LCD.print("  Guitar  >Snake");
+      LCD.print(" Guitar  >Snake");
       break;
   }
 }
 
 void displayContagemRegressiva(){
-  LCD.clear();
-  LCD.setCursor(0,0);
-  LCD.print("PREPARAR.");
+  uint64_t estado;
+  zeraLCD();
+  LCD.print("PREPARAR");
   LCD.setCursor(0,1);
   for(int i=0;i<CONTAGEM_LEN;i++){
-    LCD.setCursor(i+9,0);
+    LCD.setCursor(i+8,0);
     LCD.print(".");
-    displayImagemMatriz(CONTAGEM[i]);
+    memcpy_P(&estado,&CONTAGEM[i],sizeof estado);
+    displayImagemMatriz(estado);
     delay(900);
   } 
   LCD.setCursor(0,1);
   LCD.print("GO!!!");
   delay(1000);
-}
-
-void iniciaJogo(int jogo){
-  switch(jogo){
-    case 1:
-      jogo1();
-      break;
-    case 2:
-      jogo2();
-      break;
-    case 3:
-      jogo3();
-      break;
-    case 4:
-      jogo4();
-      break;
-    case 5:
-      jogo5();
-      break;
-    default:
-      jogo1();
-      break;
-  }
-}
-
-void jogo1(){
-  
 }
 
 void displayImagemMatriz(uint64_t imagem) {
@@ -160,8 +120,209 @@ void displayImagemMatriz(uint64_t imagem) {
   }
 }
 
+void iniciaJogo(){
+  switch(jogoSelecionado){
+    case 1:
+      jogo1();
+      break;
+    case 2:
+      jogo2();
+      break;
+  }
+}
+
+void jogo1(){
+  uint64_t estado; //PROGMEM
+  int melodiaMus;  //PROGMEM
+  int duracaoMus;  //PROGMEM
+  int pausaNota;   //PROGMEM
+  
+  boolean acertou = true;
+  int nota = 0;
+  int index = 0;
+  int pause = 0;
+  
+  zeraLCD();
+  LCD.print("Placar:");
+  LCD.setCursor(0, 1);
+  LCD.print("Pts:");
+  LCD.print(acertos);
+  
+  LCD.setCursor(8, 1);
+  LCD.print("Seq:");
+  LCD.print(seqAtual);
+
+  memcpy_P(&estado,&JOGO_1[index],sizeof estado);
+  memcpy_P(&melodiaMus,&melodia[nota],sizeof melodiaMus);
+  memcpy_P(&duracaoMus,&duracaodasnotas[nota],sizeof duracaoMus);
+  memcpy_P(&pausaNota,&pausadepoisdasnotas[nota],sizeof pausaNota);
+  
+  displayImagemMatriz(estado);
+  delay(pausaNota);
+  
+  for(int i=0;i<156;i++){
+    
+    btn_branco = digitalRead(BTN_BRANCO); 
+    btn_azul = digitalRead(BTN_AZUL); 
+    btn_verm = digitalRead(BTN_VERM);
+ 
+    if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcertou(1, estado);
+      if(!acertou){
+        tone(BZR_ERRO, 262, 200);
+        pause = pausaNota - TEMPO_LED;
+        if(pause < 0) {pause=0;}
+        delay(pause);
+      } 
+      atualizaPlacar(acertou);
+      acendeLedErroOuAcerto(acertou);
+    }
+    else if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcertou(2, estado);
+      if(!acertou){
+        tone(BZR_ERRO, 262, 200);
+        pause = pausaNota - TEMPO_LED;
+        if(pause < 0) {pause=0;}
+        delay(pause);
+      } 
+      atualizaPlacar(acertou);
+      acendeLedErroOuAcerto(acertou);
+    }
+    else if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+      acertou = verificaAcertou(3, estado);
+      if(!acertou){
+        tone(BZR_ERRO, 262, 200);
+        pause = pausaNota - TEMPO_LED;
+        if(pause < 0) {pause=0;}
+        delay(pause);
+      } 
+      atualizaPlacar(acertou);
+      acendeLedErroOuAcerto(acertou);
+    }
+    if(index == 17){index=8;} else {index++;}
+    memcpy_P(&estado,&JOGO_1[index],sizeof estado);
+    if(acertou) {
+      tone(SPEAKER, melodiaMus,duracaoMus);
+      displayImagemMatriz(estado);
+      delay(pausaNota);
+    } else {displayImagemMatriz(estado); acertou=true;}
+    nota++;
+    memcpy_P(&melodiaMus,&melodia[nota],sizeof melodiaMus);
+    memcpy_P(&duracaoMus,&duracaodasnotas[nota],sizeof duracaoMus);
+    memcpy_P(&pausaNota,&pausadepoisdasnotas[nota],sizeof pausaNota);
+  }
+  noTone(SPEAKER);
+  noTone(BZR_ERRO);
+  while(index < JOGO_1_LEN){
+    displayImagemMatriz(estado);
+    delay(300);
+    index++;
+    memcpy_P(&estado,&JOGO_1[index],sizeof estado);
+  }
+  displayResultado();
+  delay(5000);  
+}
+
+boolean verificaAcertou(int botao, uint64_t estado){
+  byte linha = (estado >> 7 * 8) & 0xFF; //verifica coluna correspondente da ultima linha
+  switch(botao){
+    case 1: //botao branco, coluna 1
+      return bitRead(linha, COL_BTN_BRANCO);
+      break;
+    case 2: //botao azul, coluna 3
+      return bitRead(linha, COL_BTN_AZUL);
+      break;
+    case 3: //botao vermelho, coluna 6
+      return bitRead(linha, COL_BTN_VERM);
+      break;
+  }
+}
+
+void atualizaPlacar(boolean acertou){
+  if(acertou){
+    acertos++;
+    seqAtual++;
+    if(seqMax < seqAtual){
+      seqMax = seqAtual;
+    }
+  } else {
+    erros++;
+    if(seqMax < seqAtual){
+      seqMax = seqAtual;
+    }
+    seqAtual = 0;
+  }
+  LCD.setCursor(4, 1);
+  LCD.print(acertos);
+  LCD.print("  ");
+  
+  LCD.setCursor(12, 1);
+  LCD.print(seqAtual);
+  LCD.print("   ");
+}
+
+void acendeLedErroOuAcerto(boolean acertou){
+  if(acertou){
+    digitalWrite(LED_VERDE, HIGH);
+    delay(TEMPO_LED);
+    digitalWrite(LED_VERDE, LOW); 
+  } else {
+    digitalWrite(LED_VERM, HIGH);
+    delay(TEMPO_LED);
+    digitalWrite(LED_VERM, LOW); 
+  }
+}
+
+void displayResultado(){
+  LCD.clear();
+  LCD.setCursor(0,0); 
+  LCD.print("Seu placar: ");
+  delay(300);
+ 
+  for(int i=15;i>=0;i--){
+    LCD.setCursor(i,1); 
+    LCD.print("P: ");
+    delay(50);
+  }
+
+  for(int i=15;i>=2;i--){
+    LCD.setCursor(i,1); 
+    LCD.print(acertos);
+    LCD.print(" ");
+    delay(50);
+  }
+
+  for(int i=15;i>=5;i--){
+    LCD.setCursor(i,1); 
+    LCD.print("E: ");
+    delay(50);
+  }
+
+  for(int i=15;i>=7;i--){
+    LCD.setCursor(i,1); 
+    LCD.print(erros);
+    LCD.print(" ");
+    delay(50);
+  }
+
+  for(int i=15;i>=10;i--){
+    LCD.setCursor(i,1); 
+    LCD.print("S: ");
+    delay(50);
+  }
+
+  for(int i=15;i>=12;i--){
+    LCD.setCursor(i,1); 
+    LCD.print(seqMax);
+    LCD.print(" ");
+    delay(50);
+  }
+}
+
 void jogo2(){
-  int delai = 400;
+  int delai = 200;
+  int isGo = false;
+  
   LCD.clear();
   LCD.setCursor(0, 0);
   LCD.print("Placar:");
@@ -177,10 +338,26 @@ void jogo2(){
   pontoInicial();
   poeComida();
   exibeSnake();
+
+  while(!isGo){
+    if(!digitalRead(BTN_BRANCO)){
+      isGo = true;
+      proximaDirecao = ESQ;
+    } else if(!digitalRead(BTN_ROSA)){
+      isGo = true;
+      proximaDirecao = CIMA;
+    } else if(!digitalRead(BTN_AZUL)){
+      isGo = true;
+      proximaDirecao = BAIXO;
+    } else if(!digitalRead(BTN_VERM)){
+      isGo = true;
+      proximaDirecao = DIR;
+    }
+  }
   
   while(!bateu){
     andar();  
-    direcaoAtual = mudarDirecao; 
+    direcaoAtual = proximaDirecao; 
     delay(100);
     
     btn_branco = digitalRead(BTN_BRANCO); 
@@ -188,10 +365,10 @@ void jogo2(){
     btn_azul = digitalRead(BTN_AZUL); 
     btn_verm = digitalRead(BTN_VERM);
   
-    if(btn_branco == LOW){mudarDirecao = ESQ;}
-    else if(btn_rosa == LOW){mudarDirecao = CIMA;}
-    else if(btn_azul == LOW){mudarDirecao = BAIXO;}
-    else if(btn_verm == LOW){mudarDirecao = DIR;}
+    if(btn_branco == LOW){proximaDirecao = ESQ;}
+    else if(btn_rosa == LOW){proximaDirecao = CIMA;}
+    else if(btn_azul == LOW){proximaDirecao = BAIXO;}
+    else if(btn_verm == LOW){proximaDirecao = DIR;}
     
     if(comeu){
       comeu = false;
@@ -220,9 +397,9 @@ void jogo2(){
 }
 
 void zerarSnake(){
-  tamSnake = 1;
+  tamSnake = 2;
   direcaoAtual = ESQ;
-  mudarDirecao = ESQ;
+  proximaDirecao = ESQ;
   cabecaX = 0;
   cabecaY = 0;
   proximoX = 0;
@@ -240,6 +417,7 @@ void pontoInicial(){
   cabecaX = rand()%6+1;
   cabecaY = rand()%6+1;
   matriz[cabecaX][cabecaY] = 1;
+  matriz[cabecaX][cabecaY+1] = 1;
 }
 
 void poeComida(){
@@ -268,13 +446,11 @@ void andar(){
   boolean baixo = false;
   boolean esq = false;
   boolean dir = false;
-  int deOndeVeio = 0;
   
-  if(tamSnake != 1 && direcaoAtual == ((-1)*mudarDirecao)){mudarDirecao = direcaoAtual; }// Se tentar andar para a diracao contrário ele nao muda nada. Apenas no comeco
-  switch(mudarDirecao){
+  if(tamSnake != 1 && direcaoAtual == ((-1)*proximaDirecao)){proximaDirecao = direcaoAtual; }// Se tentar andar para a diracao contrário ele nao muda nada. Apenas no comeco
+  switch(proximaDirecao){
     case ESQ: //esquerda
       if(cabecaY != 0){ //se nao estiver na parede esquerda ou coluna 0
-        Serial.print("aqui");
         proximoX = cabecaX;
         proximoY = cabecaY - 1;
         cabecaY = proximoY;
@@ -282,7 +458,6 @@ void andar(){
           comeu = true;
         } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
           bateu = true;
-          Serial.print("bateu");
           return;
         }
         /*if(proximoX == 0){cima=true;}
@@ -349,7 +524,6 @@ void andar(){
         }
       }else {
         bateu = true;
-        Serial.print("bateu2");
       }
       arrumaMatriz();
       break;
@@ -604,17 +778,4 @@ void arrumaMatriz(){
     }
   }
 }
-
-void jogo3(){
-  
-}
-
-void jogo4(){
-  
-}
-
-void jogo5(){
-  
-}
-
 
