@@ -29,16 +29,15 @@ void loop() {
   
   if(!digitalRead(BTN_BRANCO)){
     if(jogoSelecionado == 2){
-      jogoSelecionado--;
+      --jogoSelecionado;
     }
   }
   else if(!digitalRead(BTN_VERM)){
     if(jogoSelecionado == 1){
-      jogoSelecionado++;
+      ++jogoSelecionado;
     }
   }    
   else if(!digitalRead(BTN_ROSA) || !digitalRead(BTN_AZUL)){
-    displayContagemRegressiva();
     iniciaJogo();
     jogoSelecionado = 1;
     zeraMatriz();
@@ -94,6 +93,41 @@ void displayMenu(){
   }
 }
 
+void displayLevel(int dificuldade){
+  LCD.setCursor(0,0);
+  LCD.print("Nivel:          ");
+  switch(dificuldade){
+    case 1:
+      nivel = EASY;
+      LCD.setCursor(6,0);
+      LCD.print("EASY            ");
+      LCD.setCursor(0,1);
+      LCD.print(">E  M  H  EXP   ");
+      break;
+    case 2:
+      nivel = MEDIUM;
+      LCD.setCursor(6,0);
+      LCD.print("MEDIUM          ");
+      LCD.setCursor(0,1);
+      LCD.print(" E >M  H  EXP   ");
+      break;
+    case 3:
+      nivel = HARD;
+      LCD.setCursor(6,0);
+      LCD.print("HARD            ");
+      LCD.setCursor(0,1);
+      LCD.print(" E  M >H  EXP   ");
+      break;
+    case 4:
+      nivel = EXPERT;
+      LCD.setCursor(6,0);
+      LCD.print("EXPERT          ");
+      LCD.setCursor(0,1);
+      LCD.print(" E  M  H >EXP   ");
+      break;
+  }
+}
+
 void displayContagemRegressiva(){
   uint64_t estado;
   zeraLCD();
@@ -121,11 +155,32 @@ void displayImagemMatriz(uint64_t imagem) {
 }
 
 void iniciaJogo(){
+  int dificuldade = 1;
+  boolean selecionado = false;
+  
   switch(jogoSelecionado){
     case 1:
+      displayContagemRegressiva();
       jogo1();
       break;
     case 2:
+      while(!selecionado){
+        delay(200); //Para nao pega atraso de soltura do botao anterior
+        displayLevel(dificuldade);
+        if(!digitalRead(BTN_BRANCO)){
+            if(dificuldade > 1){
+              --dificuldade;
+            }
+        }else if(!digitalRead(BTN_VERM)){
+            if(dificuldade < 4){
+              ++dificuldade;
+            }
+        }else if(!digitalRead(BTN_ROSA) || !digitalRead(BTN_AZUL)){
+          dificuldade = 1;
+          selecionado = true;
+        }    
+      }
+      displayContagemRegressiva();
       jogo2();
       break;
   }
@@ -320,7 +375,6 @@ void displayResultado(){
 }
 
 void jogo2(){
-  int delai = 200;
   int isGo = false;
   
   LCD.clear();
@@ -371,7 +425,7 @@ void jogo2(){
     else if(btn_verm == LOW){proximaDirecao = DIR;}
     
     if(comeu){
-      tone(BZR_RESERVA,262,100);
+      tone(SPEAKER,392,200);
       comeu = false;
       acertos++;
       tamSnake++; 
@@ -382,7 +436,7 @@ void jogo2(){
       LCD.print(tamSnake);
     }
     exibeSnake();
-    delay(delai-100);
+    delay(nivel);
   }
   LCD.clear();
   LCD.setCursor(5, 0);
@@ -443,11 +497,6 @@ void exibeSnake(){
 }
 
 void andar(){
-  boolean cima = false;
-  boolean baixo = false;
-  boolean esq = false;
-  boolean dir = false;
-  
   if(tamSnake != 1 && direcaoAtual == ((-1)*proximaDirecao)){proximaDirecao = direcaoAtual; }// Se tentar andar para a diracao contrário ele nao muda nada. Apenas no comeco
   switch(proximaDirecao){
     case ESQ: //esquerda
@@ -460,73 +509,14 @@ void andar(){
         } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
           bateu = true;
           return;
-        }
-        /*if(proximoX == 0){cima=true;}
-        else if(proximoX == 7){baixo=true;}
-        if(proximoY == 0){esq=true;}
-        else if(proximoY == 7){dir=true;}*/
-         
+        }     
+          
+        moveCorpo();
+        arrumaMatriz();
         
-        //Move a cobrinha
-        for(int i=0;i<tamSnake;i++){
-          cima = false;
-          baixo = false;
-          esq = false;
-          dir = false;
-          if(proximoX == 0){cima=true;}
-          else if(proximoX == 7){baixo=true;}
-          if(proximoY == 0){esq=true;}
-          else if(proximoY == 7){dir=true;}
-          // Procura onde ta o corpinho p passar p frente        
-          if(!cima /*&& (deOndeVeio != BAIXO)*/){if(matriz[proximoX-1][proximoY] == 1){
-                       /*matriz[proximoX][proximoY] = matriz[proximoX-1][proximoY];*/ //ou 1
-                       matriz[proximoX][proximoY] = 4;
-                       if(!comeu)
-                         matriz[proximoX-1][proximoY] = 0;
-                       else if(i+1 == tamSnake){
-                         matriz[proximoX-1][proximoY] = 1;
-                       } 
-                       proximoX = proximoX-1; 
-                       //deOndeVeio = CIMA;
-                       continue;}}
-          if(!baixo /*&& (deOndeVeio != CIMA)*/){if(matriz[proximoX+1][proximoY] == 1){
-                        /*matriz[proximoX][proximoY] = matriz[proximoX+1][proximoY];*/ //ou 1
-                        matriz[proximoX][proximoY] = 4;
-                        if(!comeu)
-                          matriz[proximoX+1][proximoY] = 0;
-                        else if(i+1 == tamSnake){
-                          matriz[proximoX+1][proximoY] = 1;
-                        }
-                        proximoX = proximoX+1;
-                        //deOndeVeio = BAIXO;
-                        continue;}}
-         if(!esq /*&& (deOndeVeio != DIR)*/){if(matriz[proximoX][proximoY-1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY-1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY-1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY-1] = 1;
-                      }
-                      proximoY = proximoY-1;
-                      //deOndeVeio = ESQ;
-                      continue;}}
-          if(!dir /*&& (deOndeVeio != ESQ)*/){if(matriz[proximoX][proximoY+1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY+1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY+1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY+1] = 1;
-                      }
-                      proximoY = proximoY+1;
-                      //deOndeVeio = DIR;
-                      continue;}}   
-        }
       }else {
         bateu = true;
       }
-      arrumaMatriz();
       break;
       
     case CIMA: //cima
@@ -540,71 +530,13 @@ void andar(){
           bateu = true;
           return;
         }
-        /*if(proximoX == 0){cima=true;}
-        else if(proximoX == 7){baixo=true;}
-        if(proximoY == 0){esq=true;}
-        else if(proximoY == 7){dir=true;}*/
-               
-        //Move a cobrinha
-        for(int i=0;i<tamSnake;i++){
-          cima = false;
-          baixo = false;
-          esq = false;
-          dir = false;
-          if(proximoX == 0){cima=true;}
-          else if(proximoX == 7){baixo=true;}
-          if(proximoY == 0){esq=true;}
-          else if(proximoY == 7){dir=true;}
-          // Procura onde ta o corpinho p passar p frente        
-          if(!cima /*&& (deOndeVeio != BAIXO)*/){if(matriz[proximoX-1][proximoY] == 1){
-                       /*matriz[proximoX][proximoY] = matriz[proximoX-1][proximoY];*/ //ou 1
-                       matriz[proximoX][proximoY] = 4;
-                       if(!comeu)
-                         matriz[proximoX-1][proximoY] = 0;
-                       else if(i+1 == tamSnake){
-                         matriz[proximoX-1][proximoY] = 1;
-                       } 
-                       proximoX = proximoX-1; 
-                       //deOndeVeio = CIMA;
-                       continue;}}
-          if(!baixo /*&& (deOndeVeio != CIMA)*/){if(matriz[proximoX+1][proximoY] == 1){
-                        /*matriz[proximoX][proximoY] = matriz[proximoX+1][proximoY];*/ //ou 1
-                        matriz[proximoX][proximoY] = 4;
-                        if(!comeu)
-                          matriz[proximoX+1][proximoY] = 0;
-                        else if(i+1 == tamSnake){
-                          matriz[proximoX+1][proximoY] = 1;
-                        }
-                        proximoX = proximoX+1;
-                        //deOndeVeio = BAIXO;
-                        continue;}}
-          if(!esq /*&& (deOndeVeio != DIR)*/){if(matriz[proximoX][proximoY-1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY-1]; *///ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY-1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY-1] = 1;
-                      }
-                      proximoY = proximoY-1;
-                      //deOndeVeio = ESQ;
-                      continue;}}
-          if(!dir /*&& (deOndeVeio != ESQ)*/){if(matriz[proximoX][proximoY+1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY+1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY+1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY+1] = 1;
-                      }
-                      proximoY = proximoY+1;
-                      //deOndeVeio = DIR;
-                      continue;}}   
-        }
+      
+        moveCorpo();
+        arrumaMatriz();
+        
       }else {
         bateu = true;
       }
-      arrumaMatriz();
       break;
       
     case DIR: //direita
@@ -618,74 +550,13 @@ void andar(){
           bateu = true;
           return;
         }
-        /*if(proximoX == 0){cima=true;}
-        else if(proximoX == 7){baixo=true;}
-        if(proximoY == 0){esq=true;}
-        else if(proximoY == 7){dir=true;}*/
-         
+       
+        moveCorpo();
+        arrumaMatriz();
         
-        //Move a cobrinha
-        for(int i=0;i<tamSnake;i++){
-          cima = false;
-          baixo = false;
-          esq = false;
-          dir = false;
-          if(proximoX == 0){cima=true;}
-          else if(proximoX == 7){baixo=true;}
-          if(proximoY == 0){esq=true;}
-          else if(proximoY == 7){dir=true;}
-          // Procura onde ta o corpinho p passar p frente        
-          if(!cima /*&& (deOndeVeio != BAIXO)*/){if(matriz[proximoX-1][proximoY] == 1){
-                       /*matriz[proximoX][proximoY] = matriz[proximoX-1][proximoY];*/ //ou 1
-                       matriz[proximoX][proximoY] = 4;
-                       if(!comeu)
-                        matriz[proximoX-1][proximoY] = 0;
-                       else if(i+1 == tamSnake){
-                        matriz[proximoX-1][proximoY] = 1;
-                       }
-                       proximoX = proximoX-1; 
-                       //deOndeVeio = CIMA;
-                       continue;}}
-          if(!baixo /*&& (deOndeVeio != CIMA)*/){if(matriz[proximoX+1][proximoY] == 1){
-                        /*matriz[proximoX][proximoY] = matriz[proximoX+1][proximoY];*/ //ou 1
-                        matriz[proximoX][proximoY] = 4;
-                        if(!comeu)
-                          matriz[proximoX+1][proximoY] = 0;
-                        else if(i+1 == tamSnake){
-                          matriz[proximoX+1][proximoY] = 1;
-                        }
-                        proximoX = proximoX+1;
-                        //deOndeVeio = BAIXO;
-                        continue;}}
-          if(!esq /*&& (deOndeVeio != DIR)*/){if(matriz[proximoX][proximoY-1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY-1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY-1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY-1] = 1;
-                      }
-                      proximoY = proximoY-1;
-                      //deOndeVeio = ESQ;
-                      continue;}}
-          if(!dir /*&& (deOndeVeio != ESQ)*/){if(matriz[proximoX][proximoY+1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY+1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY+1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY+1] = 1;
-                      }
-                      proximoY = proximoY+1;
-                      //deOndeVeio = DIR;
-                      continue;}}   
-         
-        }
-         
       }else {
         bateu = true;
       }
-      arrumaMatriz();
       break;
       
     case BAIXO: //baixo
@@ -699,74 +570,72 @@ void andar(){
           bateu = true;
           return;
         }
-        /*if(proximoX == 0){cima=true;}
-        else if(proximoX == 7){baixo=true;}
-        if(proximoY == 0){esq=true;}
-        else if(proximoY == 7){dir=true;}*/
-         
         
+        moveCorpo();
+        arrumaMatriz();
         
-        //Move a cobrinha
-        for(int i=0;i<tamSnake;i++){
-          cima = false;
-          baixo = false;
-          esq = false;
-          dir = false;
-          if(proximoX == 0){cima=true;}
-          else if(proximoX == 7){baixo=true;}
-          if(proximoY == 0){esq=true;}
-          else if(proximoY == 7){dir=true;}
-          // Procura onde esta o corpinho para avancar       
-          if(!cima /*&& (deOndeVeio != BAIXO)*/){if(matriz[proximoX-1][proximoY] == 1){
-                       /*matriz[proximoX][proximoY] = matriz[proximoX-1][proximoY];*/ //ou 1
-                       matriz[proximoX][proximoY] = 4;
-                       if(!comeu)
-                        matriz[proximoX-1][proximoY] = 0;
-                       else if(i+1 == tamSnake){
-                        matriz[proximoX-1][proximoY] = 1;
-                       }
-                       proximoX = proximoX-1; 
-                       //deOndeVeio = CIMA;
-                       continue;}}
-          if(!baixo /*&& (deOndeVeio != CIMA)*/){if(matriz[proximoX+1][proximoY] == 1){
-                        /*matriz[proximoX][proximoY] = matriz[proximoX+1][proximoY];*/ //ou 1
-                        matriz[proximoX][proximoY] = 4;
-                        if(!comeu)
-                          matriz[proximoX+1][proximoY] = 0;
-                        else if(i+1 == tamSnake){
-                          matriz[proximoX+1][proximoY] = 1;
-                        }
-                        proximoX = proximoX+1;
-                        //deOndeVeio = BAIXO;
-                        continue;}}
-          if(!esq /*&& (deOndeVeio != DIR)*/){if(matriz[proximoX][proximoY-1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY-1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY-1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY-1] = 1;
-                      }
-                      proximoY = proximoY-1;
-                      //deOndeVeio = ESQ;
-                      continue;}}
-          if(!dir /*&& (deOndeVeio != ESQ)*/){if(matriz[proximoX][proximoY+1] == 1){
-                      /*matriz[proximoX][proximoY] = matriz[proximoX][proximoY+1];*/ //ou 1
-                      matriz[proximoX][proximoY] = 4;
-                      if(!comeu)
-                        matriz[proximoX][proximoY+1] = 0;
-                      else if(i+1 == tamSnake){
-                        matriz[proximoX][proximoY+1] = 1;
-                      }
-                      proximoY = proximoY+1;
-                      //deOndeVeio = DIR;
-                      continue;}}   
-        }          
       }else {
         bateu = true;
       }
-      arrumaMatriz();
       break;
+  }
+}
+
+void moveCorpo(){
+  boolean cima;
+  boolean baixo;
+  boolean esq;
+  boolean dir;
+  
+  //Move a cobrinha
+  for(int i=0;i<tamSnake;i++){
+    cima = false;
+    baixo = false;
+    esq = false;
+    dir = false;
+    
+    if(proximoX == 0){cima=true;}
+    else if(proximoX == 7){baixo=true;}
+    if(proximoY == 0){esq=true;}
+    else if(proximoY == 7){dir=true;}
+    
+    // Procura onde ta o corpinho p passar p frente        
+    if(!cima){if(matriz[proximoX-1][proximoY] == 1){
+                 matriz[proximoX][proximoY] = 4;
+                 if(!comeu)
+                   matriz[proximoX-1][proximoY] = 0;
+                 else if(i+1 == tamSnake){
+                   matriz[proximoX-1][proximoY] = 4;
+                 } 
+                 proximoX = proximoX-1; 
+                 continue;}}
+    if(!baixo){if(matriz[proximoX+1][proximoY] == 1){
+                  matriz[proximoX][proximoY] = 4;
+                  if(!comeu)
+                    matriz[proximoX+1][proximoY] = 0;
+                  else if(i+1 == tamSnake){
+                    matriz[proximoX+1][proximoY] = 4;
+                  }
+                  proximoX = proximoX+1;
+                  continue;}}
+   if(!esq){if(matriz[proximoX][proximoY-1] == 1){
+                matriz[proximoX][proximoY] = 4;
+                if(!comeu)
+                  matriz[proximoX][proximoY-1] = 0;
+                else if(i+1 == tamSnake){
+                  matriz[proximoX][proximoY-1] = 4;
+                }
+                proximoY = proximoY-1;
+                continue;}}
+    if(!dir){if(matriz[proximoX][proximoY+1] == 1){
+                matriz[proximoX][proximoY] = 4;
+                if(!comeu)
+                  matriz[proximoX][proximoY+1] = 0;
+                else if(i+1 == tamSnake){
+                  matriz[proximoX][proximoY+1] = 4;
+                }
+                proximoY = proximoY+1;
+                continue;}}   
   }
 }
 

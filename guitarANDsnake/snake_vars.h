@@ -3,8 +3,8 @@
 #define DIR   -1 //Direcao direita
 #define BAIXO -2 //Direcao Baixo
 #define COMIDA 3 //Flag Comida
-#define EASY   100
-#define MEDIUM 50
+#define EASY   200
+#define MEDIUM 100
 #define HARD   25
 #define EXPERT 10
 
