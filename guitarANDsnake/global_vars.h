@@ -1,3 +1,13 @@
+#define DO 262
+#define RE 294
+#define MI 329
+#define FA 349
+#define SOL 392
+#define LA 440
+#define SI 494
+#define EEPROM_GUITAR 0
+#define EEPROM_SNAKE  10
+
 //Contagem Regressiva
 const uint64_t CONTAGEM[] PROGMEM = {
   0x3c66603860663c00,
@@ -8,8 +18,8 @@ const int CONTAGEM_LEN = sizeof(CONTAGEM)/8;
 
 //Variaveis Globais
 String menuFrase = "2 JOGOS EM 1    ";
-int btn_branco, btn_rosa, btn_azul, btn_verm; 
-int acertos, erros, seqMax, seqAtual;
+byte btn_branco, btn_rosa, btn_azul, btn_verm; 
+byte acertos, erros, seqMax, seqAtual;
 int jogoSelecionado = 1;
 
 long millisAnterior = 0;        // Variável de controle do tempo

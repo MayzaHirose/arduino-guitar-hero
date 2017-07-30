@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <LedControl.h>
 #include <LiquidCrystal.h>
 #include "pin_config.h"
@@ -100,30 +101,30 @@ void displayLevel(int dificuldade){
     case 1:
       nivel = EASY;
       LCD.setCursor(6,0);
-      LCD.print("EASY            ");
+      LCD.print("FACIL           ");
       LCD.setCursor(0,1);
-      LCD.print(">E  M  H  EXP   ");
+      LCD.print(">F  M  D  EXP   ");
       break;
     case 2:
       nivel = MEDIUM;
       LCD.setCursor(6,0);
-      LCD.print("MEDIUM          ");
+      LCD.print("MEDIO           ");
       LCD.setCursor(0,1);
-      LCD.print(" E >M  H  EXP   ");
+      LCD.print(" F >M  D  EXP   ");
       break;
     case 3:
       nivel = HARD;
       LCD.setCursor(6,0);
-      LCD.print("HARD            ");
+      LCD.print("DIFICIL         ");
       LCD.setCursor(0,1);
-      LCD.print(" E  M >H  EXP   ");
+      LCD.print(" F  M >D  EXP   ");
       break;
     case 4:
       nivel = EXPERT;
       LCD.setCursor(6,0);
       LCD.print("EXPERT          ");
       LCD.setCursor(0,1);
-      LCD.print(" E  M  H >EXP   ");
+      LCD.print(" F  M  D >EXP   ");
       break;
   }
 }
@@ -141,7 +142,7 @@ void displayContagemRegressiva(){
     delay(900);
   } 
   LCD.setCursor(0,1);
-  LCD.print("GO!!!");
+  LCD.print("VAI!!!");
   delay(1000);
 }
 
@@ -162,11 +163,12 @@ void iniciaJogo(){
     case 1:
       displayContagemRegressiva();
       jogo1();
+      atualizaEEPROM();
       break;
     case 2:
+      zerarSnake();
       while(!selecionado){
-        delay(200); //Para nao pega atraso de soltura do botao anterior
-        displayLevel(dificuldade);
+        delay(210); //Para nao pega atraso de soltura do botao anterior
         if(!digitalRead(BTN_BRANCO)){
             if(dificuldade > 1){
               --dificuldade;
@@ -176,12 +178,13 @@ void iniciaJogo(){
               ++dificuldade;
             }
         }else if(!digitalRead(BTN_ROSA) || !digitalRead(BTN_AZUL)){
-          dificuldade = 1;
           selecionado = true;
-        }    
+        }   
+        displayLevel(dificuldade); 
       }
       displayContagemRegressiva();
       jogo2();
+      atualizaEEPROM();
       break;
   }
 }
@@ -221,7 +224,7 @@ void jogo1(){
     btn_azul = digitalRead(BTN_AZUL); 
     btn_verm = digitalRead(BTN_VERM);
  
-    if(btn_branco == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+    if(btn_branco == LOW){
       acertou = verificaAcertou(1, estado);
       if(!acertou){
         tone(BZR_ERRO, 262, 200);
@@ -232,7 +235,7 @@ void jogo1(){
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
-    else if(btn_azul == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+    else if(btn_azul == LOW){
       acertou = verificaAcertou(2, estado);
       if(!acertou){
         tone(BZR_ERRO, 262, 200);
@@ -243,7 +246,7 @@ void jogo1(){
       atualizaPlacar(acertou);
       acendeLedErroOuAcerto(acertou);
     }
-    else if(btn_verm == LOW){ //ARRUMAR, O PUSHBUTTON TA LENDO SEMPRE INVERTIDO
+    else if(btn_verm == LOW){
       acertou = verificaAcertou(3, estado);
       if(!acertou){
         tone(BZR_ERRO, 262, 200);
@@ -388,7 +391,6 @@ void jogo2(){
   LCD.print("Tam:");
   LCD.print(tamSnake);
 
-  zerarSnake();
   pontoInicial();
   poeComida();
   exibeSnake();
@@ -410,10 +412,10 @@ void jogo2(){
   }
   
   while(!bateu){
+    delay(nivel);
     andar();  
     direcaoAtual = proximaDirecao; 
-    delay(100);
-    
+ 
     btn_branco = digitalRead(BTN_BRANCO); 
     btn_rosa = digitalRead(BTN_ROSA); 
     btn_azul = digitalRead(BTN_AZUL); 
@@ -425,10 +427,15 @@ void jogo2(){
     else if(btn_verm == LOW){proximaDirecao = DIR;}
     
     if(comeu){
-      tone(SPEAKER,392,200);
+      tone(SPEAKER,SOL,200);
+
+      digitalWrite(LED_VERDE, HIGH);
+      delay(TEMPO_LED);
+      digitalWrite(LED_VERDE, LOW); 
+ 
       comeu = false;
-      acertos++;
-      tamSnake++; 
+      ++acertos;
+      ++tamSnake; 
       poeComida();
       LCD.setCursor(4, 1);
       LCD.print(acertos);
@@ -436,7 +443,19 @@ void jogo2(){
       LCD.print(tamSnake);
     }
     exibeSnake();
-    delay(nivel);
+  }
+  if(bateu){
+    digitalWrite(LED_VERM, HIGH);
+    tone(SPEAKER,MI,500);
+    delay(100);
+    tone(SPEAKER,RE,500);
+    delay(100);
+    tone(SPEAKER,DO,500);
+    delay(100);
+    tone(SPEAKER,LA,1000);
+    delay(100);
+    tone(SPEAKER,SOL,1000);
+    digitalWrite(LED_VERM, LOW);
   }
   LCD.clear();
   LCD.setCursor(5, 0);
@@ -455,11 +474,11 @@ void zerarSnake(){
   tamSnake = 2;
   direcaoAtual = ESQ;
   proximaDirecao = ESQ;
-  cabecaX = 0;
-  cabecaY = 0;
   proximoX = 0;
   proximoY = 0;
   bateu = false;
+  comeu = false;
+  nivel = EASY;
   
   for(int i=0;i<8;i++){
     for(int j=0;j<8;j++){
@@ -469,10 +488,14 @@ void zerarSnake(){
 }
 
 void pontoInicial(){
-  cabecaX = rand()%6+1;
-  cabecaY = rand()%6+1;
-  matriz[cabecaX][cabecaY] = 1;
-  matriz[cabecaX][cabecaY+1] = 1;
+  int x = rand()%6+1;
+  int y = rand()%6+1;
+  matriz[x][y] = 1;
+  matriz[x][y+1] = 1;
+  corpo[0].x = x;
+  corpo[0].y = y;
+  corpo[1].x = x;
+  corpo[1].y = y+1;
 }
 
 void poeComida(){
@@ -500,19 +523,10 @@ void andar(){
   if(tamSnake != 1 && direcaoAtual == ((-1)*proximaDirecao)){proximaDirecao = direcaoAtual; }// Se tentar andar para a diracao contrário ele nao muda nada. Apenas no comeco
   switch(proximaDirecao){
     case ESQ: //esquerda
-      if(cabecaY != 0){ //se nao estiver na parede esquerda ou coluna 0
-        proximoX = cabecaX;
-        proximoY = cabecaY - 1;
-        cabecaY = proximoY;
-        if(matriz[proximoX][proximoY] == COMIDA){
-          comeu = true;
-        } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
-          bateu = true;
-          return;
-        }     
-          
+      if(corpo[0].y != 0){ //se nao estiver na parede esquerda ou coluna 0
+        proximoX = corpo[0].x;
+        proximoY = corpo[0].y - 1;
         moveCorpo();
-        arrumaMatriz();
         
       }else {
         bateu = true;
@@ -520,19 +534,10 @@ void andar(){
       break;
       
     case CIMA: //cima
-      if(cabecaX != 0){ //se nao estiver na parede cima ou linha 0
-        proximoX = cabecaX - 1;
-        proximoY = cabecaY;
-        cabecaX = proximoX;
-        if(matriz[proximoX][proximoY] == COMIDA){
-          comeu = true;
-        } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
-          bateu = true;
-          return;
-        }
-      
+      if(corpo[0].x != 0){ //se nao estiver na parede cima ou linha 0
+        proximoX = corpo[0].x - 1;
+        proximoY = corpo[0].y;
         moveCorpo();
-        arrumaMatriz();
         
       }else {
         bateu = true;
@@ -540,19 +545,10 @@ void andar(){
       break;
       
     case DIR: //direita
-      if(cabecaY != 7){ //se nao estiver na parede direita ou coluna 7
-        proximoX = cabecaX;
-        proximoY = cabecaY + 1;
-        cabecaY = proximoY;
-        if(matriz[proximoX][proximoY] == COMIDA){
-          comeu = true;
-        } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
-          bateu = true;
-          return;
-        }
-       
+      if(corpo[0].y != 7){ //se nao estiver na parede direita ou coluna 7
+        proximoX = corpo[0].x;
+        proximoY = corpo[0].y + 1;
         moveCorpo();
-        arrumaMatriz();
         
       }else {
         bateu = true;
@@ -560,19 +556,10 @@ void andar(){
       break;
       
     case BAIXO: //baixo
-      if(cabecaX != 7){ //se nao estiver na parede baixo ou linha 7
-        proximoX = cabecaX + 1;
-        proximoY = cabecaY;
-        cabecaX = proximoX;
-        if(matriz[proximoX][proximoY] == COMIDA){
-          comeu = true;
-        } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
-          bateu = true;
-          return;
-        }
-        
+      if(corpo[0].x != 7){ //se nao estiver na parede baixo ou linha 7
+        proximoX = corpo[0].x + 1;
+        proximoY = corpo[0].y;
         moveCorpo();
-        arrumaMatriz();
         
       }else {
         bateu = true;
@@ -582,70 +569,65 @@ void andar(){
 }
 
 void moveCorpo(){
-  boolean cima;
-  boolean baixo;
-  boolean esq;
-  boolean dir;
-  
-  //Move a cobrinha
+  int x,y;
+  if(matriz[proximoX][proximoY] == COMIDA){
+    comeu = true;
+  } else if(matriz[proximoX][proximoY] == 1){ //Caso bata no corpo
+    bateu = true;
+    return;
+  }   
   for(int i=0;i<tamSnake;i++){
-    cima = false;
-    baixo = false;
-    esq = false;
-    dir = false;
-    
-    if(proximoX == 0){cima=true;}
-    else if(proximoX == 7){baixo=true;}
-    if(proximoY == 0){esq=true;}
-    else if(proximoY == 7){dir=true;}
-    
-    // Procura onde ta o corpinho p passar p frente        
-    if(!cima){if(matriz[proximoX-1][proximoY] == 1){
-                 matriz[proximoX][proximoY] = 4;
-                 if(!comeu)
-                   matriz[proximoX-1][proximoY] = 0;
-                 else if(i+1 == tamSnake){
-                   matriz[proximoX-1][proximoY] = 4;
-                 } 
-                 proximoX = proximoX-1; 
-                 continue;}}
-    if(!baixo){if(matriz[proximoX+1][proximoY] == 1){
-                  matriz[proximoX][proximoY] = 4;
-                  if(!comeu)
-                    matriz[proximoX+1][proximoY] = 0;
-                  else if(i+1 == tamSnake){
-                    matriz[proximoX+1][proximoY] = 4;
-                  }
-                  proximoX = proximoX+1;
-                  continue;}}
-   if(!esq){if(matriz[proximoX][proximoY-1] == 1){
-                matriz[proximoX][proximoY] = 4;
-                if(!comeu)
-                  matriz[proximoX][proximoY-1] = 0;
-                else if(i+1 == tamSnake){
-                  matriz[proximoX][proximoY-1] = 4;
-                }
-                proximoY = proximoY-1;
-                continue;}}
-    if(!dir){if(matriz[proximoX][proximoY+1] == 1){
-                matriz[proximoX][proximoY] = 4;
-                if(!comeu)
-                  matriz[proximoX][proximoY+1] = 0;
-                else if(i+1 == tamSnake){
-                  matriz[proximoX][proximoY+1] = 4;
-                }
-                proximoY = proximoY+1;
-                continue;}}   
+    x = corpo[i].x;
+    y = corpo[i].y;
+    matriz[proximoX][proximoY] = 1;
+    if(!comeu){
+      matriz[x][y] = 0;
+    }
+    else if(i+1 == tamSnake){
+      matriz[x][y] = 1;
+      corpo[tamSnake].x = x;
+      corpo[tamSnake].y = y;
+    }
+    corpo[i].x = proximoX;
+    corpo[i].y = proximoY;
+    proximoX = x;
+    proximoY = y; 
   }
 }
 
-void arrumaMatriz(){
-  for (int i = 0; i < 8; i++) {
-    for (int j = 0; j < 8; j++) {
-      if(matriz[i][j] == 4){
-        matriz[i][j] = 1;
+void atualizaEEPROM(){
+  Serial.print("atualzia eeprom");
+  Serial.print("\n");
+  byte recordAnterior;
+  switch(jogoSelecionado){
+    case 1:
+      recordAnterior = EEPROM.read(EEPROM_GUITAR);
+      if(recordAnterior < acertos){
+        EEPROM.update(EEPROM_GUITAR, acertos);
+        novoRecord(recordAnterior);
       }
-    }
+      break;
+    case 2:
+      recordAnterior = EEPROM.read(EEPROM_SNAKE);
+      if(recordAnterior < acertos){
+         EEPROM.update(EEPROM_SNAKE, acertos);
+         novoRecord(recordAnterior);
+      }
+      break;
   }
+}
+
+void novoRecord(byte anterior){
+  LCD.clear();
+  LCD.setCursor(0, 0);
+  LCD.print(" NOVO RECORD!!! ");
+  LCD.setCursor(0, 1);
+  LCD.print("Old:");
+  LCD.print(anterior);
+  
+  LCD.setCursor(8, 1);
+  LCD.print("New:");
+  LCD.print(acertos);
+  delay(5000);
 }
 

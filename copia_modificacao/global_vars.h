@@ -1,3 +1,11 @@
+#define DO 262
+#define RE 294
+#define MI 329
+#define FA 349
+#define SOL 392
+#define LA 440
+#define SI 494
+
 //Contagem Regressiva
 const uint64_t CONTAGEM[] PROGMEM = {
   0x3c66603860663c00,
