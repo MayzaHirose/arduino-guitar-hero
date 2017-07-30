@@ -29,16 +29,15 @@ void loop() {
   
   if(!digitalRead(BTN_BRANCO)){
     if(jogoSelecionado == 2){
-      jogoSelecionado--;
+      --jogoSelecionado;
     }
   }
   else if(!digitalRead(BTN_VERM)){
     if(jogoSelecionado == 1){
-      jogoSelecionado++;
+      ++jogoSelecionado;
     }
   }    
   else if(!digitalRead(BTN_ROSA) || !digitalRead(BTN_AZUL)){
-    displayContagemRegressiva();
     iniciaJogo();
     jogoSelecionado = 1;
     zeraMatriz();
@@ -94,6 +93,41 @@ void displayMenu(){
   }
 }
 
+void displayLevel(int dificuldade){
+  LCD.setCursor(0,0);
+  LCD.print("Nivel:          ");
+  switch(dificuldade){
+    case 1:
+      nivel = EASY;
+      LCD.setCursor(6,0);
+      LCD.print("EASY            ");
+      LCD.setCursor(0,1);
+      LCD.print(">E  M  H  EXP   ");
+      break;
+    case 2:
+      nivel = MEDIUM;
+      LCD.setCursor(6,0);
+      LCD.print("MEDIUM          ");
+      LCD.setCursor(0,1);
+      LCD.print(" E >M  H  EXP   ");
+      break;
+    case 3:
+      nivel = HARD;
+      LCD.setCursor(6,0);
+      LCD.print("HARD            ");
+      LCD.setCursor(0,1);
+      LCD.print(" E  M >H  EXP   ");
+      break;
+    case 4:
+      nivel = EXPERT;
+      LCD.setCursor(6,0);
+      LCD.print("EXPERT          ");
+      LCD.setCursor(0,1);
+      LCD.print(" E  M  H >EXP   ");
+      break;
+  }
+}
+
 void displayContagemRegressiva(){
   uint64_t estado;
   zeraLCD();
@@ -121,11 +155,32 @@ void displayImagemMatriz(uint64_t imagem) {
 }
 
 void iniciaJogo(){
+  int dificuldade = 1;
+  boolean selecionado = false;
+  
   switch(jogoSelecionado){
     case 1:
+      displayContagemRegressiva();
       jogo1();
       break;
     case 2:
+      while(!selecionado){
+        delay(200); //Para nao pega atraso de soltura do botao anterior
+        displayLevel(dificuldade);
+        if(!digitalRead(BTN_BRANCO)){
+            if(dificuldade > 1){
+              --dificuldade;
+            }
+        }else if(!digitalRead(BTN_VERM)){
+            if(dificuldade < 4){
+              ++dificuldade;
+            }
+        }else if(!digitalRead(BTN_ROSA) || !digitalRead(BTN_AZUL)){
+          dificuldade = 1;
+          selecionado = true;
+        }    
+      }
+      displayContagemRegressiva();
       jogo2();
       break;
   }
@@ -320,7 +375,6 @@ void displayResultado(){
 }
 
 void jogo2(){
-  int delai = 200;
   int isGo = false;
   
   LCD.clear();
@@ -371,6 +425,7 @@ void jogo2(){
     else if(btn_verm == LOW){proximaDirecao = DIR;}
     
     if(comeu){
+      tone(SPEAKER,392,200);
       comeu = false;
       acertos++;
       tamSnake++; 
@@ -381,7 +436,7 @@ void jogo2(){
       LCD.print(tamSnake);
     }
     exibeSnake();
-    delay(delai-100);
+    delay(nivel);
   }
   LCD.clear();
   LCD.setCursor(5, 0);

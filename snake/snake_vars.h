@@ -15,3 +15,10 @@ int proximoX = 0;
 int proximoY = 0;
 boolean bateu = false;
 boolean comeu = false;
+
+// Com struct
+typedef struct{
+  int coordX;
+  int coordY;
+} Corpo;
+

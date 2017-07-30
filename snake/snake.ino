@@ -371,6 +371,7 @@ void jogo2(){
     else if(btn_verm == LOW){proximaDirecao = DIR;}
     
     if(comeu){
+      tone(BZR_RESERVA,262,100);
       comeu = false;
       acertos++;
       tamSnake++; 
