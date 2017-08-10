@@ -1,6 +1,7 @@
 # arduino-guitar-hero
 
 Arduino Guitar and Snake
+
 Trabalho da disciplina Sistemas Digitais, turma 4º ano de Informática - UEM
 
 Implementação de um mini console contendo adaptações de dois games. 
