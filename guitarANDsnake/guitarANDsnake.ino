@@ -11,7 +11,10 @@ LiquidCrystal LCD(RS, ENABLE, D4, D5, D6, D7);
 
 void setup() {
   Serial.begin(9600);
-
+//apenas para zerar a EEPROM
+//for (int i = 0 ; i < EEPROM.length() ; i++) {
+//    EEPROM.write(i, 0);
+//  }
   inicializaModulos();
   zeraMatriz();
   zeraLCD();
@@ -596,8 +599,6 @@ void moveCorpo(){
 }
 
 void atualizaEEPROM(){
-  Serial.print("atualzia eeprom");
-  Serial.print("\n");
   byte recordAnterior;
   switch(jogoSelecionado){
     case 1:
